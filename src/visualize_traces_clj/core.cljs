@@ -19,7 +19,6 @@
      ;; at beginning of simulation (which is not always true).
      :enabled (set (map (fn [cog] [cog 0]) (keys data)))
      :history nil
-     :events (reduce + (map count (vals data)))
      :cogs (count (keys data))}))
 
 (defn enables [pred data]
@@ -32,8 +31,12 @@
       (keep data)))
 
 (defn enabled-by-sequential [event-key data]
-  (let [new-key (update event-key 1 inc)]
-    (if (get-in data new-key) #{new-key} #{})))
+  (let [new-key (update event-key 1 inc)
+        event (get-in data new-key)]
+    (case (:event-type event)
+      :schedule #{}
+      :fut-read #{}
+      (if event #{new-key} #{}))))
 
 (defn enabled-by-invoc [event data]
   (enables (partial = (assoc event :event-type :schedule)) data))
@@ -49,46 +52,54 @@
             :completed (enabled-by-completion event data)
             nil))))
 
-(defn remove-blocked [enabled history]
-  (let [in-history? (set history)]
-   (-> (fn [[cog schedule :as event-key]]
-         (or (in-history? event-key)
-             (and (pos? schedule)
-                  (not (in-history? [cog (dec schedule)])))))
-       (remove enabled) set)))
+(defn remove-completed [enabled history]
+  (let [in-history? (set (apply concat history))]
+    (-> (fn [[cog schedule :as event-key]]
+          (in-history? event-key))
+        (remove enabled) set)))
+
+(defn one-per-cog [event-keys]
+  (let [cogs (group-by first event-keys)]
+    (set (map first (vals cogs)))))
 
 (defn update-state [state]
   (if (not-empty (:enabled state))
-    (let [event-key ;; (first (:enabled state))
-          (-> state :enabled vec rand-nth)
-          history (conj (:history state) event-key)]
+    (let [event-keys (->> state :enabled one-per-cog
+                          (filter (:enabled state)) set)
+          history (conj (:history state) event-keys)]
       (-> state
           (assoc :history history)
-          (update :enabled into (enabled-by event-key (:data state)))
-          (update :enabled remove-blocked history)))
+          (update :enabled (partial reduce into)
+                  (map #(enabled-by % (:data state)) event-keys))
+          (update :enabled remove-completed history)))
     (setup)))
 
 (defn draw-state [state]
-  (q/frame-rate 10)
+  (q/frame-rate 1)
   (q/background 240)
   (q/fill 0 0 0)
   (let [wd (/ (q/width) (inc (:cogs state)))
-        hd (/ (q/height) (inc (:events state)))
+        hd (min 50 (/ (q/height) (inc (count (:history state)))))
         cogs (->> (:data state) keys sort to-array)]
     #_(q/text (str (count (:history state)) "/" (:events state)) 20 (- (q/height) 60))
     #_(q/text (str "enabled: " (:enabled state)) 20 (- (q/height) 40))
     #_(let [disabled (difference (reduce into #{} (vals (:data state)))
-                               (set (map (partial get-in (:data state)) (:enabled state)))
-                               (set (map (partial get-in (:data state)) (:history state))))]
+                                 (set (map (partial get-in (:data state)) (:enabled state)))
+                                 (set (map (partial get-in (:data state)) (:history state))))]
         (q/text (str "disabled: " disabled) 20 (- (q/height) 20)))
     #_(q/text (str (:history state)) 20 (- (q/height) 20))
-    (doseq [[i event-key]
+
+    (doseq [[i event-keys]
             (map-indexed vector (reverse (:history state)))]
-      (let [event (get-in (:data state) event-key)
-            j (.indexOf cogs (first event-key))]
-        (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10)
-        (q/text (str (:method event)) (* wd (inc j)) (* hd (+ 2 i)))
-        #_(q/text (str (first event-key) " " event) 10 (* hd (+ 2 i)))))))
+      (doseq [event-key event-keys]
+        (let [event (get-in (:data state) event-key)
+              j (.indexOf cogs (first event-key))]
+          (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10)
+
+          #_(q/text (str (:event-type event) "\n" (:method event))
+                  (- (* wd (inc j)) 20)
+                  (- (* hd (inc i)) 20))
+          #_(q/text (str (first event-key) " " event) 10 (* hd (+ 2 i))))))))
 
 (defn ^:export run-sketch []
   (q/defsketch visualize-traces-clj

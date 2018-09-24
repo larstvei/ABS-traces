@@ -21,6 +21,15 @@
        (clojure.walk/prewalk (fn [x] (if (string? x) (keyword x) x)))
        (reduce (fn [res cog] (assoc res (:cog-id cog) (:cog-schedule cog))) {})))
 
+(defn blocked-events [data]
+  (-> (fn [[cog schedule]]
+        (keep-indexed
+         (fn [i event]
+           (when (or (= (:event-type event) :schedule)
+                     (= (:event-type event) :future-read))
+             [cog i])) schedule))
+      (mapcat data) set))
+
 (defn setup []
   (q/frame-rate 1)
   (q/color-mode :hsb)
@@ -29,26 +38,24 @@
     {:data data
      ;; Missing object creation events, so assume that all cogs spawn
      ;; at beginning of simulation (which is not always true).
-     :enabled (set (map (fn [cog] [cog 0]) (keys data)))
+     :blocked (difference (blocked-events data)
+                          (set (map (fn [cog] [cog 0]) (keys data))))
+     :pending (-> (fn [[cog schedule]]
+                    (map-indexed (fn [i s] [cog i]) schedule))
+                  (mapcat data) set)
      :history nil
      :cogs (count (keys data))}))
 
 (defn enables [pred data]
-  (-> (fn [[cog schedule]]
-        (let [sched-event (->> schedule
-                               (map-indexed vector)
-                               (filter (comp pred second))
-                               first)]
-          (when sched-event [cog (first sched-event)])))
-      (keep data)))
-
-(defn enabled-by-sequential [event-key data]
-  (let [new-key (update event-key 1 inc)
-        event (get-in data new-key)]
-    (case (:event-type event)
-      :schedule #{}
-      :future-read #{}
-      (if event #{new-key} #{}))))
+  (->> data
+       (keep (fn [[cog schedule]]
+               (->> schedule
+                    (map-indexed vector)
+                    (filter (comp pred second))
+                    (map first)
+                    (map (partial vector cog))
+                    (not-empty))))
+       (apply concat)))
 
 (defn enabled-by-invoc [event data]
   (enables (partial = (assoc event :event-type :schedule)) data))
@@ -58,38 +65,35 @@
 
 (defn enabled-by [event-key data]
   (let [event (get-in data event-key)]
-    (into (enabled-by-sequential event-key data)
-          (case (:event-type event)
-            :invocation (enabled-by-invoc event data)
-            :completed (enabled-by-completion event data)
-            nil))))
-
-(defn remove-completed [enabled history]
-  (let [in-history? (apply union history)]
-    (-> (fn [[cog schedule :as event-key]]
-          (in-history? event-key))
-        (remove enabled) set)))
+    (case (:event-type event)
+      :invocation (enabled-by-invoc event data)
+      :completed (enabled-by-completion event data)
+      #{})))
 
 (defn one-per-cog [event-keys]
   (let [cogs (group-by first event-keys)]
-    (set (map first (vals cogs)))))
+    (set (map (comp first (partial sort-by second)) (vals cogs)))))
 
 (defn update-state [state]
-  (if (not-empty (:enabled state))
-    (let [event-keys (->> state :enabled one-per-cog
-                          (filter (:enabled state)) set)
-          history (conj (:history state) event-keys)]
+  (if (not-empty (:pending state))
+    (let [event-keys (->> state :pending one-per-cog
+                          (remove (:blocked state)) set)
+          history (conj (:history state) event-keys)
+          enabled (mapcat #(enabled-by % (:data state)) event-keys)]
       (-> state
           (assoc :history history)
-          (update :enabled (partial reduce into)
-                  (map #(enabled-by % (:data state)) event-keys))
-          (update :enabled remove-completed history)))
-    state))
+          (update :blocked difference enabled)
+          (update :pending difference event-keys)))
+    state
+    ;;(setup)
+    ))
 
 (defn draw-state [state]
+  (q/frame-rate 1)
   (q/text-font (q/create-font "monospace" 13))
   (q/background 255)
   (q/stroke-weight 1)
+  (q/text-align :center)
   (let [history (reverse (:history state))
         wd (/ (q/width) (inc (:cogs state)))
         hd (min 50 (/ (q/height) (inc (count history))))

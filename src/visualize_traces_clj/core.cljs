@@ -88,6 +88,31 @@
     ;;(setup)
     ))
 
+(defn draw-grid [n m wd hd]
+  (q/no-stroke)
+  (dotimes [h n]
+    (q/fill (if (even? h) 245 250))
+    (let [x2 (+ (* m wd) 40)]
+      (q/rect (- wd 20) (* (+ h 0.5) hd) x2 hd))))
+
+(defn display-cog-names [cogs wd hd]
+  (doseq [cog cogs]
+    (q/fill 0)
+    (q/text cog (* wd (inc (.indexOf cogs cog))) (/ hd 2.5))))
+
+(defn draw-message [event data cogs history i j wd hd]
+ (let [[event-key2] (enabled-by-invoc event data)
+       k (.indexOf cogs (first event-key2))
+       xs (drop-while #(not (% event-key2)) history)]
+   (when (not-empty xs)
+     (let [l (- (count history) (count xs))
+           x1 (* wd (inc j)) y1 (* hd (inc i))
+           x2 (* wd (inc k)) y2 (* hd (inc l))]
+       (q/fill 0)
+       (q/stroke 0)
+       (utils/dotted-arrow x1 y1 x2 y2)
+       (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
+
 (defn draw-state [state]
   (q/frame-rate 1)
   (q/text-font (q/create-font "monospace" 13))
@@ -98,35 +123,18 @@
         wd (/ (q/width) (inc (:cogs state)))
         hd (min 50 (/ (q/height) (inc (count history))))
         cogs (->> (:data state) keys sort to-array)]
-    (dotimes [h (count history)]
-      (q/no-stroke)
-      (q/fill (if (even? h) 245 250))
-      (let [x2 (+ (* (dec (count cogs)) wd) 40)]
-        (q/rect (- wd 20) (* (+ h 0.5) hd) x2 hd)))
-    (doseq [cog cogs]
-      (q/fill 0)
-      (q/text cog (* wd (inc (.indexOf cogs cog))) 12))
+    (draw-grid (count history) (dec (count cogs)) wd hd)
+    (display-cog-names cogs wd hd)
     (doseq [[i event-keys]
             (map-indexed vector history)]
       (doseq [event-key event-keys]
         (let [event (get-in (:data state) event-key)
               j (.indexOf cogs (first event-key))]
           (when (= (:event-type event) :invocation)
-            (let [[event-key2] (enabled-by-invoc event (:data state))
-                  k (.indexOf cogs (first event-key2))
-                  xs (drop-while #(not (% event-key2)) history)]
-              (when (not-empty xs)
-                (let [l (- (count history) (count xs))
-                      x1 (* wd (inc j)) y1 (* hd (inc i))
-                      x2 (* wd (inc k)) y2 (* hd (inc l))]
-                  (q/fill 0)
-                  (q/stroke 0)
-                  (utils/dotted-arrow x1 y1 x2 y2)
-                  (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
+            (draw-message event (:data state) cogs history i j wd hd))
           (q/fill 255)
           (apply q/stroke (event-type->color (:event-type event)))
           (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10))))))
-
 
 (defn sketch-size []
   (let [container (parent (sel1 (keyword "#visualize-traces-clj")))

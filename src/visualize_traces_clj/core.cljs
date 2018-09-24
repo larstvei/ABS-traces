@@ -1,11 +1,20 @@
 (ns visualize-traces-clj.core
-  (:require [quil.core :as q :include-macros true]
+  (:require [visualize-traces-clj.utils :as utils]
+            [quil.core :as q :include-macros true]
             [quil.middleware :as m]
             [clojure.string :as s]
             [clojure.set :refer [difference]]
             [dommy.core :refer [listen! unlisten! parent style] :refer-macros [sel1]]))
 
 (def json-str "[ { \"cog_id\": [ 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"main\" }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_insert\", \"task_id\": 2 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_insert\", \"task_id\": 3 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_printbuffer\", \"task_id\": 6 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_printbuffer\", \"task_id\": 6 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_printbuffer\", \"task_id\": 7 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_printbuffer\", \"task_id\": 7 } ] }, { \"cog_id\": [ 0, 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_insert\", \"task_id\": 2 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_insert\", \"task_id\": 2 }, { \"caller_id\": [ 0, 1 ], \"event_type\": \"schedule\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0, 1 ], \"event_type\": \"completed\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_printbuffer\", \"task_id\": 6 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_printbuffer\", \"task_id\": 6 } ] }, { \"cog_id\": [ 0, 1 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_insert\", \"task_id\": 3 }, { \"caller_id\": [ 0, 1 ], \"event_type\": \"invocation\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_insert\", \"task_id\": 3 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_printbuffer\", \"task_id\": 7 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_printbuffer\", \"task_id\": 7 } ] }, { \"cog_id\": [ 1 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" } ] } ]")
+;; (def json-str "[ { \"cog_id\": [ 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"main\" }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_sort\", \"task_id\": 0 } ] }, { \"cog_id\": [ 0, 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_sort\", \"task_id\": 0 } ] }, { \"cog_id\": [ 0, 0, 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sort\", \"task_id\": 1 } ] }, { \"cog_id\": [ 1 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" } ] } ]")
+
+(def event-types [:schedule :invocation :completed :future-read])
+
+(def event-type->color
+  (->> (count event-types) range
+       (map #(vector (/ 255 (inc %)) 255 255))
+       (zipmap event-types)))
 
 (defn json->state [s]
   (->> (s/replace s "_" "-") (.parse js/JSON) (js->clj)
@@ -13,7 +22,9 @@
        (reduce (fn [res cog] (assoc res (:cog-id cog) (:cog-schedule cog))) {})))
 
 (defn setup []
+  (q/frame-rate 1)
   (q/color-mode :hsb)
+  (q/text-align :center)
   (let [data (json->state json-str)]
     {:data data
      ;; Missing object creation events, so assume that all cogs spawn
@@ -36,14 +47,14 @@
         event (get-in data new-key)]
     (case (:event-type event)
       :schedule #{}
-      :fut-read #{}
+      :future-read #{}
       (if event #{new-key} #{}))))
 
 (defn enabled-by-invoc [event data]
   (enables (partial = (assoc event :event-type :schedule)) data))
 
 (defn enabled-by-completion [event data]
-  (enables (partial = (assoc event :event-type :fut-read)) data))
+  (enables (partial = (assoc event :event-type :future-read)) data))
 
 (defn enabled-by [event-key data]
   (let [event (get-in data event-key)]
@@ -73,29 +84,44 @@
           (update :enabled (partial reduce into)
                   (map #(enabled-by % (:data state)) event-keys))
           (update :enabled remove-completed history)))
-    (setup)))
+    state))
 
 (defn draw-state [state]
-  (q/frame-rate 1)
-  (q/background 240)
-  (q/fill 0 0 0)
-  (let [wd (/ (q/width) (inc (:cogs state)))
-        hd (min 50 (/ (q/height) (inc (count (:history state)))))
+  (q/text-font (q/create-font "monospace" 13))
+  (q/background 255)
+  (q/stroke-weight 1)
+  (let [history (reverse (:history state))
+        wd (/ (q/width) (inc (:cogs state)))
+        hd (min 50 (/ (q/height) (inc (count history))))
         cogs (->> (:data state) keys sort to-array)]
-    #_(q/text (str (count (:history state)) "/" (:events state)) 20 (- (q/height) 60))
-    #_(q/text (str "enabled: " (:enabled state)) 20 (- (q/height) 40))
-    #_(let [disabled (difference (reduce into #{} (vals (:data state)))
-                                 (set (map (partial get-in (:data state)) (:enabled state)))
-                                 (set (map (partial get-in (:data state)) (:history state))))]
-        (q/text (str "disabled: " disabled) 20 (- (q/height) 20)))
-    #_(q/text (str (:history state)) 20 (- (q/height) 20))
-
+    (dotimes [h (count history)]
+      (q/no-stroke)
+      (q/fill (if (even? h) 245 250))
+      (let [x2 (+ (* (dec (count cogs)) wd) 40)]
+        (q/rect (- wd 20) (* (+ h 0.5) hd) x2 hd)))
+    (doseq [cog cogs]
+      (q/fill 0)
+      (q/text cog (* wd (inc (.indexOf cogs cog))) 12))
     (doseq [[i event-keys]
-            (map-indexed vector (reverse (:history state)))]
+            (map-indexed vector history)]
       (doseq [event-key event-keys]
         (let [event (get-in (:data state) event-key)
               j (.indexOf cogs (first event-key))]
-          (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10)
+          (when (= (:event-type event) :invocation)
+            (let [[event-key2] (enabled-by-invoc event (:data state))
+                  k (.indexOf cogs (first event-key2))
+                  xs (drop-while #(not (% event-key2)) history)]
+              (when (not-empty xs)
+                (let [l (- (count history) (count xs))
+                      x1 (* wd (inc j)) y1 (* hd (inc i))
+                      x2 (* wd (inc k)) y2 (* hd (inc l))]
+                  (q/fill 0)
+                  (q/stroke 0)
+                  (utils/dotted-arrow x1 y1 x2 y2)
+                  (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
+          (q/fill 255)
+          (apply q/stroke (event-type->color (:event-type event)))
+          (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10))))))
 
 
 (defn sketch-size []

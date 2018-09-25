@@ -12,9 +12,23 @@
 (def event-types [:schedule :invocation :completed :future-read])
 
 (def event-type->color
-  (->> (count event-types) range
-       (map #(vector (/ 255 (inc %)) 255 255))
-       (zipmap event-types)))
+  (let [n (quot 256 (count event-types))]
+    (->> (count event-types) range
+         (map #(vector (- 255 (* % n)) 255 255))
+         (zipmap event-types))))
+
+
+(defn color-map [data]
+  (let [task (fn [e] (when (= (:event-type e) :invocation) (:task-id e)))
+        tasks (mapcat (fn [[cog schedule]]
+                        (->> (keep task schedule)
+                             (map (partial vector cog)))) data)
+        n (count tasks)
+        c (/ 256 n)
+        ;; Try to keep similar colors far apart from each other.
+        indexes (concat (range 0 n 3) (range 1 n 3) (range 2 n 3))
+        colors (map #(vector % (- 255 (* c %2))) tasks indexes)]
+    (into {} colors)))
 
 (defn json->state [s]
   (->> (s/replace s "_" "-") (.parse js/JSON) (js->clj)
@@ -44,7 +58,9 @@
                     (map-indexed (fn [i s] [cog i]) schedule))
                   (mapcat data) set)
      :history nil
-     :cogs (count (keys data))}))
+     :cogs (count (keys data))
+     :event->color-map (color-map data)}
+    ))
 
 (defn enables [pred data]
   (->> data
@@ -101,17 +117,17 @@
     (q/text cog (* wd (inc (.indexOf cogs cog))) (/ hd 2.5))))
 
 (defn draw-message [event data cogs history i j wd hd]
- (let [[event-key2] (enabled-by-invoc event data)
-       k (.indexOf cogs (first event-key2))
-       xs (drop-while #(not (% event-key2)) history)]
-   (when (not-empty xs)
-     (let [l (- (count history) (count xs))
-           x1 (* wd (inc j)) y1 (* hd (inc i))
-           x2 (* wd (inc k)) y2 (* hd (inc l))]
-       (q/fill 0)
-       (q/stroke 0)
-       (utils/dotted-arrow x1 y1 x2 y2)
-       (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
+  (let [[event-key2] (enabled-by-invoc event data)
+        k (.indexOf cogs (first event-key2))
+        xs (drop-while #(not (% event-key2)) history)]
+    (when (not-empty xs)
+      (let [l (- (count history) (count xs))
+            x1 (* wd (inc j)) y1 (* hd (inc i))
+            x2 (* wd (inc k)) y2 (* hd (inc l))]
+        (q/fill 0)
+        (q/stroke 0)
+        (utils/dotted-arrow x1 y1 x2 y2)
+        (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
 
 (defn draw-state [state]
   (q/frame-rate 1)
@@ -129,12 +145,20 @@
             (map-indexed vector history)]
       (doseq [event-key event-keys]
         (let [event (get-in (:data state) event-key)
-              j (.indexOf cogs (first event-key))]
+              j (.indexOf cogs (first event-key))
+              task [(or (:caller-id event) (first event-key)) (:task-id event)]
+              hue ((:event->color-map state) task)]
           (when (= (:event-type event) :invocation)
             (draw-message event (:data state) cogs history i j wd hd))
+
           (q/fill 255)
-          (apply q/stroke (event-type->color (:event-type event)))
-          (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10))))))
+          (q/stroke-weight 2)
+          (if hue (q/stroke hue 255 255) (q/stroke 0))
+          (q/ellipse (* wd (inc j)) (* hd (inc i)) 15 15)
+          (q/stroke 255)
+          (apply q/fill (event-type->color (:event-type event)))
+          (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10)
+          (q/stroke-weight 1))))))
 
 (defn sketch-size []
   (let [container (parent (sel1 (keyword "#visualize-traces-clj")))

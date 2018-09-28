@@ -59,7 +59,8 @@
                   (mapcat data) set)
      :history nil
      :cogs (count (keys data))
-     :event->color-map (color-map data)}
+     :event->color-map (color-map data)
+     :speed 1}
     ))
 
 (defn enables [pred data]
@@ -91,7 +92,7 @@
     (set (map (comp first (partial sort-by second)) (vals cogs)))))
 
 (defn update-state [state]
-  (if (not-empty (:pending state))
+  (if (and (not (:paused state)) (not-empty (:pending state)))
     (let [event-keys (->> state :pending one-per-cog
                           (remove (:blocked state)) set)
           history (conj (:history state) event-keys)
@@ -130,7 +131,7 @@
         (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
 
 (defn draw-state [state]
-  (q/frame-rate 1)
+  (q/frame-rate (:speed state))
   (q/text-font (q/create-font "monospace" 13))
   (q/background 255)
   (q/stroke-weight 1)
@@ -172,11 +173,22 @@
 (unlisten! js/window :resize resize)
 (listen! js/window :resize resize)
 
+(defn key-handler [state event]
+  (case (name (q/key-as-keyword))
+    " "    (update state :paused not)
+
+    "up"   (update state :speed inc)
+
+    "down" (update state :speed dec)
+
+    state))
+
 (defn ^:export run-sketch []
   (q/defsketch visualize-traces-clj
     :host "visualize-traces-clj"
     :size (sketch-size)
     :setup setup
     :update update-state
+    :key-pressed key-handler
     :draw draw-state
     :middleware [m/fun-mode]))

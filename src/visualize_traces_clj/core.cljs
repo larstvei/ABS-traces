@@ -9,6 +9,23 @@
 (def json-str "[ { \"cog_id\": [ 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"main\" }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_insert\", \"task_id\": 2 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_insert\", \"task_id\": 3 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_printbuffer\", \"task_id\": 6 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_printbuffer\", \"task_id\": 6 }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_printbuffer\", \"task_id\": 7 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_printbuffer\", \"task_id\": 7 } ] }, { \"cog_id\": [ 0, 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_setOtherClient\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_insert\", \"task_id\": 2 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_insert\", \"task_id\": 2 }, { \"caller_id\": [ 0, 1 ], \"event_type\": \"schedule\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0, 1 ], \"event_type\": \"completed\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_done\", \"task_id\": 4 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_printbuffer\", \"task_id\": 6 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_printbuffer\", \"task_id\": 6 } ] }, { \"cog_id\": [ 0, 1 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_setOtherClient\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_insert\", \"task_id\": 3 }, { \"caller_id\": [ 0, 1 ], \"event_type\": \"invocation\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_insert\", \"task_id\": 3 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_receive\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_done\", \"task_id\": 5 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_printbuffer\", \"task_id\": 7 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_printbuffer\", \"task_id\": 7 } ] }, { \"cog_id\": [ 1 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" } ] } ]")
 ;; (def json-str "[ { \"cog_id\": [ 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"main\" }, { \"caller_id\": [ 0 ], \"event_type\": \"invocation\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"future_read\", \"method\": \"m_sort\", \"task_id\": 0 } ] }, { \"cog_id\": [ 0, 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0 ], \"event_type\": \"completed\", \"method\": \"m_sort\", \"task_id\": 0 } ] }, { \"cog_id\": [ 0, 0, 0 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"invocation\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"schedule\", \"method\": \"m_sort\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sortInternal\", \"task_id\": 0 }, { \"caller_id\": [ 0, 0, 0 ], \"event_type\": \"future_read\", \"method\": \"m_sortInternal\", \"task_id\": 1 }, { \"caller_id\": [ 0, 0 ], \"event_type\": \"completed\", \"method\": \"m_sort\", \"task_id\": 1 } ] }, { \"cog_id\": [ 1 ], \"cog_schedule\": [ { \"event_type\": \"schedule\", \"task_id\": \"init\" } ] } ]")
 
+(def example-trace
+  {[0]   [{:event-type :schedule, :task-id :main}
+          {:caller-id [0], :event-type :invocation, :method :m-insert, :task-id 2}
+          {:caller-id [0], :event-type :invocation, :method :m-insert, :task-id 3}]
+   [0 0] [{:event-type :schedule, :task-id :init}
+          {:caller-id [0], :event-type :schedule, :method :m-insert, :task-id 2}
+          {:caller-id [0 0], :event-type :invocation, :method :m-receive, :task-id 0}
+          {:caller-id [0], :event-type :completed, :method :m-insert, :task-id 2}
+          {:caller-id [0 1], :event-type :schedule, :method :m-receive, :task-id 0}
+          {:caller-id [0 1], :event-type :completed, :method :m-receive, :task-id 0}]
+   [0 1] [{:event-type :schedule, :task-id :init}
+          {:caller-id [0], :event-type :schedule, :method :m-insert, :task-id 3}
+          {:caller-id [0 1], :event-type :invocation, :method :m-receive, :task-id 0}
+          {:caller-id [0], :event-type :completed, :method :m-insert, :task-id 3}
+          {:caller-id [0 0], :event-type :schedule, :method :m-receive, :task-id 0}
+          {:caller-id [0 0], :event-type :completed, :method :m-receive, :task-id 0}]})
+
 (def event-types [:schedule :invocation :completed :future-read])
 
 (def event-type->color
@@ -18,11 +35,11 @@
          (zipmap event-types))))
 
 
-(defn color-map [data]
+(defn color-map [trace]
   (let [task (fn [e] (when (= (:event-type e) :invocation) (:task-id e)))
         tasks (mapcat (fn [[cog schedule]]
                         (->> (keep task schedule)
-                             (map (partial vector cog)))) data)
+                             (map (partial vector cog)))) trace)
         n (count tasks)
         c (/ 256 n)
         ;; Try to keep similar colors far apart from each other.
@@ -30,41 +47,42 @@
         colors (map #(vector % (- 255 (* c %2))) tasks indexes)]
     (into {} colors)))
 
-(defn json->state [s]
-  (->> (s/replace s "_" "-") (.parse js/JSON) (js->clj)
-       (clojure.walk/prewalk (fn [x] (if (string? x) (keyword x) x)))
+(defn json->trace [s]
+  (->> (clojure.walk/prewalk (fn [x] (if (string? x) (keyword x) x)) s)
        (reduce (fn [res cog] (assoc res (:cog-id cog) (:cog-schedule cog))) {})))
 
-(defn blocked-events [data]
+(defn json-str->trace [s]
+  (->> (s/replace s "_" "-") (.parse js/JSON) (js->clj) json->trace))
+
+(defn blocked-events [trace]
   (-> (fn [[cog schedule]]
         (keep-indexed
          (fn [i event]
            (when (or (= (:event-type event) :schedule)
                      (= (:event-type event) :future-read))
              [cog i])) schedule))
-      (mapcat data) set))
+      (mapcat trace) set))
 
-(defn setup []
+(defn setup [trace]
   (q/frame-rate 1)
   (q/color-mode :hsb)
   (q/text-align :center)
-  (let [data (json->state json-str)]
-    {:data data
-     ;; Missing object creation events, so assume that all cogs spawn
-     ;; at beginning of simulation (which is not always true).
-     :blocked (difference (blocked-events data)
-                          (set (map (fn [cog] [cog 0]) (keys data))))
-     :pending (-> (fn [[cog schedule]]
-                    (map-indexed (fn [i s] [cog i]) schedule))
-                  (mapcat data) set)
-     :history nil
-     :cogs (count (keys data))
-     :event->color-map (color-map data)
-     :speed 1}
-    ))
+  {:trace trace
+   ;; Missing object creation events, so assume that all cogs spawn
+   ;; at beginning of simulation (which is not always true).
+   :blocked (difference (blocked-events trace)
+                        (set (map (fn [cog] [cog 0]) (keys trace))))
+   :pending (-> (fn [[cog schedule]]
+                  (map-indexed (fn [i s] [cog i]) schedule))
+                (mapcat trace) set)
+   :history nil
+   :cogs (count (keys trace))
+   :event->color-map (color-map trace)
+   :speed 1}
+  )
 
-(defn enables [pred data]
-  (->> data
+(defn enables [pred trace]
+  (->> trace
        (keep (fn [[cog schedule]]
                (->> schedule
                     (map-indexed vector)
@@ -74,29 +92,65 @@
                     (not-empty))))
        (apply concat)))
 
-(defn enabled-by-invoc [event data]
-  (enables (partial = (assoc event :event-type :schedule)) data))
+(defn enabled-by-invoc [event trace]
+  (enables (partial = (assoc event :event-type :schedule)) trace))
 
-(defn enabled-by-completion [event data]
-  (enables (partial = (assoc event :event-type :future-read)) data))
+(defn enabled-by-completion [event trace]
+  (enables (partial = (assoc event :event-type :future-read)) trace))
 
-(defn enabled-by [event-key data]
-  (let [event (get-in data event-key)]
+(defn enabled-by [event-key trace]
+  (let [event (get-in trace event-key)]
     (case (:event-type event)
-      :invocation (enabled-by-invoc event data)
-      :completed (enabled-by-completion event data)
+      :invocation (enabled-by-invoc event trace)
+      :completed (enabled-by-completion event trace)
       #{})))
 
 (defn one-per-cog [event-keys]
   (let [cogs (group-by first event-keys)]
     (set (map (comp first (partial sort-by second)) (vals cogs)))))
 
+(defn unblock-init [trace]
+  (let [inits (set (map (fn [cog] [cog 0]) (keys trace)))]
+    (difference (blocked-events trace) inits)))
+
+(defn cog-local-trace->event-keys [cog schedule]
+  (for [i (range (count schedule))]
+    [cog i]))
+
+(defn trace->event-keys [trace]
+  (-> (fn [res [cog schedule]]
+        (into res (cog-local-trace->event-keys cog schedule)))
+      (reduce #{} trace)))
+
+(defn trace->history
+  ([trace] (let [blocked (unblock-init trace)
+                 pending (trace->event-keys trace)]
+             (trace->history trace blocked pending nil)))
+  ([trace blocked pending history]
+   (if (empty? pending)
+     (reverse history)
+     (let [candidates (one-per-cog pending)
+           entries (difference candidates blocked)
+           enabled (set (mapcat #(enabled-by % trace) entries))]
+       (recur trace
+              (difference blocked enabled)
+              (difference pending entries)
+              (conj history entries))))))
+
+(defn history->trace [history trace]
+  (-> (fn [res event-keys]
+        (-> (fn [res2 [cog i]]
+              (let [e (get-in trace [cog i])]
+                (update res2 cog (fnil conj []) e)))
+            (reduce res event-keys)))
+      (reduce {} history)))
+
 (defn update-state [state]
   (if (and (not (:paused state)) (not-empty (:pending state)))
     (let [event-keys (->> state :pending one-per-cog
                           (remove (:blocked state)) set)
           history (conj (:history state) event-keys)
-          enabled (mapcat #(enabled-by % (:data state)) event-keys)]
+          enabled (mapcat #(enabled-by % (:trace state)) event-keys)]
       (-> state
           (assoc :history history)
           (update :blocked difference enabled)
@@ -117,8 +171,8 @@
     (q/fill 0)
     (q/text cog (* wd (inc (.indexOf cogs cog))) (/ hd 2.5))))
 
-(defn draw-message [event data cogs history i j wd hd]
-  (let [[event-key2] (enabled-by-invoc event data)
+(defn draw-message [event trace cogs history i j wd hd]
+  (let [[event-key2] (enabled-by-invoc event trace)
         k (.indexOf cogs (first event-key2))
         xs (drop-while #(not (% event-key2)) history)]
     (when (not-empty xs)
@@ -139,18 +193,18 @@
   (let [history (reverse (:history state))
         wd (/ (q/width) (inc (:cogs state)))
         hd (min 50 (/ (q/height) (inc (count history))))
-        cogs (->> (:data state) keys sort to-array)]
+        cogs (->> (:trace state) keys sort to-array)]
     (draw-grid (count history) (dec (count cogs)) wd hd)
     (display-cog-names cogs wd hd)
     (doseq [[i event-keys]
             (map-indexed vector history)]
       (doseq [event-key event-keys]
-        (let [event (get-in (:data state) event-key)
+        (let [event (get-in (:trace state) event-key)
               j (.indexOf cogs (first event-key))
               task [(or (:caller-id event) (first event-key)) (:task-id event)]
               hue ((:event->color-map state) task)]
           (when (= (:event-type event) :invocation)
-            (draw-message event (:data state) cogs history i j wd hd))
+            (draw-message event (:trace state) cogs history i j wd hd))
 
           (q/fill 255)
           (q/stroke-weight 2)
@@ -187,7 +241,7 @@
   (q/defsketch visualize-traces-clj
     :host "visualize-traces-clj"
     :size (sketch-size)
-    :setup setup
+    :setup (partial setup example-trace)
     :update update-state
     :key-pressed key-handler
     :draw draw-state

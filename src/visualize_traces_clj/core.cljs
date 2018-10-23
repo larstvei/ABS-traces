@@ -105,9 +105,25 @@
       :completed (enabled-by-completion event trace)
       #{})))
 
+(defn event-key-type [trace event-key]
+  (get-in trace (conj event-key :event-type)))
+
+(defn schedule-bulk [trace schedule]
+  (-> (fn [k] (-> (event-key-type trace k) (not= :schedule)))
+      (take-while schedule)))
+
 (defn one-per-cog [event-keys]
   (let [cogs (group-by first event-keys)]
     (set (map (comp first (partial sort-by second)) (vals cogs)))))
+
+(defn one-schedule-run-per-cog [trace event-keys]
+  (let [cogs (group-by first event-keys)]
+    (reduce (fn [res [cog schedule]]
+              (let [[x & xs] (sort-by second schedule)
+                    non-schedule-events (schedule-bulk trace xs)]
+                (into (conj res x) non-schedule-events)))
+            #{}
+            cogs)))
 
 (defn unblock-init [trace]
   (let [inits (set (map (fn [cog] [cog 0]) (keys trace)))]
@@ -121,6 +137,21 @@
   (-> (fn [res [cog schedule]]
         (into res (cog-local-trace->event-keys cog schedule)))
       (reduce #{} trace)))
+
+(defn trace->schedule-history
+  ([trace] (let [blocked (unblock-init trace)
+                 pending (trace->event-keys trace)]
+             (trace->schedule-history trace blocked pending nil)))
+  ([trace blocked pending history]
+   (if (empty? pending)
+     (reverse history)
+     (let [candidates (one-schedule-run-per-cog trace pending)
+           entries (difference candidates blocked)
+           enabled (set (mapcat #(enabled-by % trace) entries))]
+       (recur trace
+              (difference blocked enabled)
+              (difference pending entries)
+              (conj history entries))))))
 
 (defn trace->history
   ([trace] (let [blocked (unblock-init trace)

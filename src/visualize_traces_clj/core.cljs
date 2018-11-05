@@ -26,6 +26,27 @@
           {:caller-id [0 0], :event-type :schedule, :method :m-receive, :task-id 0}
           {:caller-id [0 0], :event-type :completed, :method :m-receive, :task-id 0}]})
 
+(def example-trace2
+  {[0]   [{:event-type :schedule, :task-id :main}
+          {:caller-id [0], :event-type :invocation, :method :m-p, :task-id 0}
+          {:caller-id [0], :event-type :invocation, :method :m-q, :task-id 1}
+          {:caller-id [0], :event-type :invocation, :method :m-h, :task-id 2}],
+   [0 0] [{:event-type :schedule, :task-id :init}
+          {:caller-id [0], :event-type :schedule, :method :m-p, :task-id 0}
+          {:caller-id [0], :event-type :completed, :method :m-p, :task-id 0}
+          {:caller-id [0 1], :event-type :schedule, :method :m-m, :task-id 0}
+          {:caller-id [0 1], :event-type :completed, :method :m-m, :task-id 0}
+          {:caller-id [0 2], :event-type :schedule, :method :m-t, :task-id 0}
+          {:caller-id [0 2], :event-type :completed, :method :m-t, :task-id 0}],
+   [0 1] [{:event-type :schedule, :task-id :init}
+          {:caller-id [0], :event-type :schedule, :method :m-q, :task-id 1}
+          {:caller-id [0 1], :event-type :invocation, :method :m-m, :task-id 0}
+          {:caller-id [0], :event-type :completed, :method :m-q, :task-id 1}],
+   [0 2] [{:event-type :schedule, :task-id :init}
+          {:caller-id [0], :event-type :schedule, :method :m-h, :task-id 2}
+          {:caller-id [0 2], :event-type :invocation, :method :m-t, :task-id 0}
+          {:caller-id [0], :event-type :completed, :method :m-h, :task-id 2}]})
+
 (def event-types [:schedule :invocation :completed :future-read])
 
 (def event-type->color
@@ -33,7 +54,6 @@
     (->> (count event-types) range
          (map #(vector (- 255 (* % n)) 255 255))
          (zipmap event-types))))
-
 
 (defn color-map [trace]
   (let [task (fn [e] (when (= (:event-type e) :invocation) (:task-id e)))
@@ -121,9 +141,17 @@
     (reduce (fn [res [cog schedule]]
               (let [[x & xs] (sort-by second schedule)
                     non-schedule-events (schedule-bulk trace xs)]
-                (into (conj res x) non-schedule-events)))
+                (conj res (conj non-schedule-events x))))
             #{}
             cogs)))
+
+(defn schedule-runs [trace event-keys]
+  (when-not (empty? event-keys)
+    (let [[x & xs] event-keys
+          [run ys] (split-with (comp (partial not= :schedule)
+                                     (partial event-key-type trace))
+                               xs)]
+      (cons (cons x run) (schedule-runs trace ys)))))
 
 (defn unblock-init [trace]
   (let [inits (set (map (fn [cog] [cog 0]) (keys trace)))]
@@ -138,6 +166,56 @@
         (into res (cog-local-trace->event-keys cog schedule)))
       (reduce #{} trace)))
 
+(defn event-key->event [trace k]
+  (get-in trace k))
+
+#_(defn trace->queue-tree
+    ([trace] (let [blocked (unblock-init trace)
+                   pending (trace->event-keys trace)]
+               (trace->queue-tree trace blocked pending)))
+    ([trace blocked pending qtree]
+     (when-not (empty? pending)
+       (let [candidates (one-schedule-run-per-cog pending)
+             entries (difference candidates blocked)
+             enabled (set (mapcat #(enabled-by % trace) entries))]
+         {:queues entries
+          :actions (filter ? entries)
+          :children (map (fn [?] (trace->queue-tree )) actions)}))))
+
+(defn trace->process-paths
+  ([trace] (let [blocked (unblock-init trace)
+                 pending (trace->event-keys trace)]
+             (trace->process-paths trace blocked pending)))
+  ([trace blocked pending]
+   (if (empty? pending)
+     '(())
+     (let [candidates (schedule-runs trace (sort pending))]
+       (apply concat
+              (for [x (remove (comp blocked first) candidates)
+                    :let [enabled (set (mapcat #(enabled-by % trace) x))]]
+                (map (partial cons x)
+                     (trace->process-paths
+                      trace
+                      (difference blocked enabled)
+                      (difference pending (set x))))))))))
+
+(defn trace->process-queues
+  ([trace] (let [blocked (unblock-init trace)
+                 pending (trace->event-keys trace)]
+             (trace->process-queues trace blocked pending nil)))
+  ([trace blocked pending process-queues]
+   (if (empty? pending)
+     (reverse process-queues)
+     (let [candidates (mapcat identity (one-schedule-run-per-cog trace pending))
+           entries (difference candidates blocked)
+           enabled (set (mapcat #(enabled-by % trace) entries))]
+       (recur trace
+              (difference blocked enabled)
+              (difference pending entries)
+              (conj process-queues
+                    (filter (fn [k] (= (event-key-type trace k) :schedule))
+                            (difference pending blocked))))))))
+
 (defn trace->schedule-history
   ([trace] (let [blocked (unblock-init trace)
                  pending (trace->event-keys trace)]
@@ -145,7 +223,7 @@
   ([trace blocked pending history]
    (if (empty? pending)
      (reverse history)
-     (let [candidates (one-schedule-run-per-cog trace pending)
+     (let [candidates (mapcat identity (one-schedule-run-per-cog trace pending))
            entries (difference candidates blocked)
            enabled (set (mapcat #(enabled-by % trace) entries))]
        (recur trace
@@ -212,6 +290,7 @@
             x2 (* wd (inc k)) y2 (* hd (inc l))]
         (q/fill 0)
         (q/stroke 0)
+        (q/stroke-weight 2)
         (utils/dotted-arrow x1 y1 x2 y2)
         (utils/label-line (subs (str (:method event)) 3) x1 y1 x2 y2)))))
 
@@ -220,7 +299,7 @@
   (q/text-font (q/create-font "monospace" 13))
   (q/background 255)
   (q/stroke-weight 1)
-  (q/text-align :center)
+  #_(q/text-align :center)
   (let [history (reverse (:history state))
         wd (/ (q/width) (inc (:cogs state)))
         hd (min 50 (/ (q/height) (inc (count history))))
@@ -244,7 +323,9 @@
           (q/stroke 255)
           (apply q/fill (event-type->color (:event-type event)))
           (q/ellipse (* wd (inc j)) (* hd (inc i)) 10 10)
-          (q/stroke-weight 1))))))
+          (q/stroke-weight 1))))
+    #_(q/fill 0)
+    #_(q/text (with-out-str (pprint history)) 10 (/ (q/height) 2))))
 
 (defn sketch-size []
   (let [container (parent (sel1 (keyword "#visualize-traces-clj")))

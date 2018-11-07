@@ -13,7 +13,7 @@
   ([x1 y1 x2 y2] (dotted-arrow x1 y1 x2 y2 10))
   ([x1 y1 x2 y2 d]
    (let [n (quot (q/dist x1 y1 x2 y2) d)
-         l (/ (dec n) n)]
+         l (/ (dec n) (max 1 n))]
      (dotted-line x1 y1 x2 y2 d)
      (q/push-matrix)
      (q/translate (q/lerp x1 x2 l) (q/lerp y1 y2 l))

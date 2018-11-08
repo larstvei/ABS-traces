@@ -5,6 +5,7 @@
             [visualize-traces-clj.utils :refer :all]))
 
 (defn setup [trace]
+  (q/frame-rate 30)
   (q/color-mode :hsb)
   (q/text-align :center :center)
   (q/text-font (q/create-font "monospace" 16))
@@ -12,7 +13,6 @@
   {:trace trace
    :cogs (keys trace)
    :history (trace->history trace)
-   :speed 1
    :start 0
    :height 30})
 
@@ -62,7 +62,6 @@
               (dotted-arrow x y x2 y2))))))))
 
 (defn draw-state [state]
-  (q/frame-rate (:speed state))
   (q/background 255)
   (let [history (take (:height state) (drop (:start state) (:history state)))
         n (count (:cogs state))

@@ -98,17 +98,17 @@
      (let [candidates (schedule-runs trace (sort pending))
            candidates (or (not-empty (filter (comp zero? second first) candidates))
                           candidates)]
-       (apply concat
-              (for [x (remove (comp blocked first) candidates)
-                    :let [[c1 i1] (first x)
-                          enabled (set (mapcat #(enabled-by % trace) x))]]
-                (if-not (empty? (filter (fn [[c2 i2]] (and (= c1 c2) (> i1 i2))) pending))
-                  (list (list (list [c1 i1])))
-                  (map (partial cons x)
-                       (trace->process-paths
-                        trace
-                        (difference blocked enabled)
-                        (difference pending (set x)))))))))))
+       (->> (for [x (remove (comp blocked first) candidates)
+                  :let [[c1 i1] (first x)
+                        enabled (set (mapcat #(enabled-by % trace) x))]]
+              (if-not (empty? (filter (fn [[c2 i2]] (and (= c1 c2) (> i1 i2))) pending))
+                (list (list (list [c1 i1])))
+                (map (partial cons x)
+                     (trace->process-paths
+                      trace
+                      (difference blocked enabled)
+                      (difference pending (set x))))))
+            (apply concat))))))
 
 (defn trace->process-queues
   ([trace] (let [blocked (unblock-init trace)

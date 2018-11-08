@@ -73,12 +73,13 @@
     (draw-events (:trace state) history (:cogs state) wd hd)))
 
 (defn key-handler [state event]
-  (case (name (q/key-as-keyword))
-    " "    (update state :paused not)
+  (case (q/key-as-keyword)
+    :?    (update state :help not)
 
-    "up"   (update state :speed inc)
+    :up   (update state :start (comp (partial max 0) dec))
 
-    "down" (update state :speed dec)
+    :down (let [m (dec (count (:history state)))]
+             (update state :start (comp (partial min m) inc)))
 
     state))
 

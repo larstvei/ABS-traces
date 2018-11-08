@@ -20,8 +20,8 @@
   (memoize
    (let [color (atom 0)]
      (fn [event-key]
-       (swap! color (comp #(mod % 256) (partial + (+ 128 32))))
-       [@color 128 256]))))
+       (swap! color (comp #(mod % 256) (partial + 112)))
+       [@color 150 256]))))
 
 (defn draw-grid [n m wd hd]
   (q/no-stroke)

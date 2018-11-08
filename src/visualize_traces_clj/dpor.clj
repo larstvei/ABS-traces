@@ -1,6 +1,7 @@
 (ns visualize-traces-clj.dpor
   (:require [clojure.set :refer [difference]]
-            [visualize-traces-clj.core :refer :all]))
+            [visualize-traces-clj.example-traces :refer :all]
+            [visualize-traces-clj.event-keys :refer :all]))
 
 (defn blocked-events [trace]
   (-> (fn [[cog schedule]]

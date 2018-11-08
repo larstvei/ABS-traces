@@ -51,9 +51,22 @@
       #{})))
 
 (defn schedule-bulk
-  "Returns a sequence of the non-schedule events in `schedule` until the next
-  schedule event in `trace`."
-  [trace schedule]
+  "Returns a sequence of the non-schedule events in `trace` at `cog` until the
+  next schedule event in `trace`."
+  [trace [cog id]]
+  (let [schedule (drop (inc id) (trace cog))
+        bulksize (-> (comp (partial not= :schedule) :event-type)
+                     (take-while schedule) count)]
+    (cons [cog id] (map (fn [i] [cog (+ id i 1)]) (range bulksize)))))
+
+(defn enabled-by-schedule [event-key trace]
+  (let [events (->> (schedule-bulk trace event-key)
+                    (mapcat #(enabled-by % trace)) set)]
+    (when-let [new-events (mapcat (partial schedule-bulk trace) events)]
+      (reduce into events
+              (map #(enabled-by-schedule % trace) new-events)))))
+
+(defn until-next-schedule [trace schedule]
   (-> (fn [k] (-> (event-key-type trace k) (not= :schedule)))
       (take-while schedule)))
 
@@ -75,7 +88,7 @@
   (let [cogs (group-by first event-keys)]
     (reduce (fn [res [cog schedule]]
               (let [[x & xs] (sort-by second schedule)
-                    non-schedule-events (schedule-bulk trace xs)]
+                    non-schedule-events (until-next-schedule trace xs)]
                 (conj res (conj non-schedule-events x))))
             #{}
             cogs)))

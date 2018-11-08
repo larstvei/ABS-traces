@@ -14,7 +14,7 @@
    :cogs (keys trace)
    :history (trace->history trace)
    :start 0
-   :height 30})
+   :height 10})
 
 (def event-color
   (memoize
@@ -73,13 +73,19 @@
     (draw-events (:trace state) history (:cogs state) wd hd)))
 
 (defn key-handler [state event]
-  (case (q/key-as-keyword)
-    :?    (update state :help not)
+  (let [n (count (:history state))]
+   (case (q/key-as-keyword)
+     :?    (update state :help not)
 
-    :up   (update state :start (comp (partial max 0) dec))
+     :up   (update state :start (comp (partial max 0) dec))
 
-    :down (let [m (dec (count (:history state)))]
+     :down (let [m (- n (:height state))]
              (update state :start (comp (partial min m) inc)))
 
-    state))
+     :- (update state :height (comp (partial max 1) dec))
 
+     :+ (update state :height (comp (partial min n) inc))
+
+     := (update state :height (comp (partial min n) inc))
+
+     state)))

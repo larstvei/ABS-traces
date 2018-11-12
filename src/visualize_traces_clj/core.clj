@@ -1,9 +1,10 @@
 (ns visualize-traces-clj.core
-  (:require [clojure.data.json :as json]
+  (:require [clj-http.client :as h]
+            [clojure.data.json :as json]
             [clojure.string :as s]
             [quil.core :as q :include-macros true]
             [quil.middleware :as m]
-            [visualize-traces-clj.draw :refer [draw-state key-handler setup]]
+            [visualize-traces-clj.draw :refer [draw-state setup]]
             [visualize-traces-clj.example-traces :refer :all]))
 
 (defn json->trace [s]
@@ -12,6 +13,35 @@
 
 (defn json-str->trace [s]
   (->> (s/replace s "_" "-") json/read-json json->trace))
+
+(defn get-trace-from-simulator []
+  (try
+    (-> (h/get "http://localhost:8080/schedules" {:accept :json})
+        :body json-str->trace)
+    (catch Exception e nil)))
+
+(defn key-handler [state event]
+  (q/redraw)
+  (let [n (count (:history state))]
+   (case (q/key-as-keyword)
+     :?    (update state :help not)
+
+     :up   (update state :start (comp (partial max 0) dec))
+
+     :down (let [m (- n (:height state))]
+             (update state :start (comp (partial min m) inc)))
+
+     :- (update state :height (comp (partial max 1) dec))
+
+     :+ (update state :height (comp (partial min n) inc))
+
+     := (update state :height (comp (partial min n) inc))
+
+     :l (if-let [new-trace (get-trace-from-simulator)]
+          (setup new-trace)
+          state)
+
+     state)))
 
 (defn ^:export run-sketch []
   (q/defsketch visualize-traces-clj

@@ -10,7 +10,8 @@
   (-> (fn [[cog schedule]]
         (keep-indexed
          (fn [i event]
-           (when (or (= (:event-type event) :schedule)
+           (when (or (and (= (:event-type event) :schedule)
+                          (not (#{:init :main :run} (:task-id event))))
                      (= (:event-type event) :future-read))
              [cog i])) schedule))
       (mapcat trace) set))
@@ -109,15 +110,6 @@
                                xs)]
       (cons (cons x run) (schedule-runs trace ys)))))
 
-(defn unblock-init
-  "Returns a sequence of the blocked events in `trace`, but makes sure to remove
-  main and init from the returned value. A special case is needed for these
-  events, seeing as they are the first events in each cog, and normally an event
-  is unblocked by another event being done."
-  [trace]
-  (let [inits (set (map (fn [cog] [cog 0]) (keys trace)))]
-    (difference (blocked-events trace) inits)))
-
 
 (defn cog-local-trace->event-keys
   "Returns a sequence of event keys based on a `cog` and its `schedule`, where
@@ -137,7 +129,7 @@
 #_(defn trace->queue-tree
     "Attempts to calculate the process queue at each stage in the execution,
     giving the result as a tree."
-    ([trace] (let [blocked (unblock-init trace)
+    ([trace] (let [blocked (blocked-events trace)
                    pending (trace->event-keys trace)]
                (trace->queue-tree trace blocked pending)))
     ([trace blocked pending qtree]
@@ -151,7 +143,7 @@
 
 (defn trace->process-paths
   "Returns a sequence of all possible known paths in the execution from `trace`."
-  ([trace] (let [blocked (unblock-init trace)
+  ([trace] (let [blocked (blocked-events trace)
                  pending (trace->event-keys trace)]
              (trace->process-paths trace blocked pending)))
   ([trace blocked pending]
@@ -175,7 +167,7 @@
 (defn trace->process-queues
   "Returns a list consisting of process quques at each step of the execution
   for `trace`."
-  ([trace] (let [blocked (unblock-init trace)
+  ([trace] (let [blocked (blocked-events trace)
                  pending (trace->event-keys trace)]
              (trace->process-queues trace blocked pending nil)))
   ([trace blocked pending process-queues]
@@ -194,7 +186,7 @@
 (defn trace->schedule-history
   "Returns a global history corresponding to `trace`, where each point in the
   history is a schedule run."
-  ([trace] (let [blocked (unblock-init trace)
+  ([trace] (let [blocked (blocked-events trace)
                  pending (trace->event-keys trace)]
              (trace->schedule-history trace blocked pending nil)))
   ([trace blocked pending history]
@@ -210,7 +202,7 @@
 
 (defn trace->history
   "Returns a global history corresponding to `trace`."
-  ([trace] (let [blocked (unblock-init trace)
+  ([trace] (let [blocked (blocked-events trace)
                  pending (trace->event-keys trace)]
              (trace->history trace blocked pending nil)))
   ([trace blocked pending history]
@@ -219,10 +211,19 @@
      (let [candidates (one-per-cog pending)
            entries (difference candidates blocked)
            enabled (set (mapcat #(enabled-by % trace) entries))]
-       (recur trace
-              (difference blocked enabled)
-              (difference pending entries)
-              (conj history entries))))))
+       #_(when-let [future-reads
+                  (->> entries
+                       (map (partial event-key->event trace))
+                       (filter (comp (partial = :future-read) :event-type))
+                       not-empty)]
+         (prn future-reads))
+       (if (empty? entries)
+         (reverse history)
+         #_{:bug? candidates}
+         (recur trace
+                (difference blocked enabled)
+                (difference pending entries)
+                (conj history entries)))))))
 
 (defn history->trace [trace history]
   "Returns a trace corresponding to `history`. Its intented use is to convert

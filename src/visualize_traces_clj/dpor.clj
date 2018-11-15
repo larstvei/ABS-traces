@@ -3,7 +3,7 @@
             [visualize-traces-clj.example-traces :refer :all]
             [visualize-traces-clj.event-keys :refer :all]))
 
-;; 
+;; Returns a list of events in the trace that are initially blocked
 (defn blocked-events [trace]
   (-> (fn [[cog schedule]]
         (keep-indexed

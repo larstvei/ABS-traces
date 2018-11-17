@@ -67,7 +67,8 @@
   "Returns a set of lists, where each list represents a 'schedule run' for a cog
   in `trace` identified by `event-keys`. The first element in each schedule run
   is a schedule event for a task, and the following events are possible
-  invocations done by the task, followed by a completion event for the task.
+  invocations and future-reads done by the task, followed by a completion event
+  for the task.
   
   Note: Assumes that the first event in all schedules is a schedule event."
   [trace event-keys]
@@ -83,8 +84,8 @@
   "Returns a sequence of lists, where each list represents a 'schedule run' for
   a cog in `trace` identified by `event-keys`. The first element in each
   schedule run is a schedule event for a task, and the following events are
-  possible invocations done by the task, followed by a completion event for the
-  task.
+  possible invocations and future-reads done by the task, followed by a
+  completion event for the task.
   
   Note: Assumes that the first event in all schedules is a schedule event."
   [trace event-keys]

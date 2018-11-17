@@ -1,10 +1,12 @@
 (ns visualize-traces-clj.dpor
+  "Contains functions used to perform Dynamic Partial Order Reduction (DPOR) on ABS models."
   (:require [clojure.set :refer [difference]]
             [visualize-traces-clj.example-traces :refer :all]
             [visualize-traces-clj.event-keys :refer :all]))
 
-;; Returns a list of events in the trace that are initially blocked
-(defn blocked-events [trace]
+(defn blocked-events
+  "Returns a sequence of the events in `trace` that are initially blocked."
+  [trace]
   (-> (fn [[cog schedule]]
         (keep-indexed
          (fn [i event]
@@ -13,8 +15,9 @@
              [cog i])) schedule))
       (mapcat trace) set))
 
-;; Returns a list of events in the trace that satisfy the predicate
-(defn enables [pred trace]
+(defn enables
+  "Returns a sequence of the events in `trace` that satisfy `pred`."
+  [pred trace]
   (->> trace
        (keep (fn [[cog schedule]]
                (->> schedule
@@ -25,38 +28,49 @@
                     (not-empty))))
        (apply concat)))
 
-;; Schedule events in the trace that are enabled by the given invocation event
-(defn enabled-by-invoc [event trace]
+(defn enabled-by-invoc
+  "Returns a sequence of the schedule events in `trace` that are enabled by
+  `event`, which is expected to be an invocation event."
+  [event trace]
   (enables (partial = (assoc event :event-type :schedule)) trace))
 
-;; Future-read events in the trace that are enabled by the given completion event
-(defn enabled-by-completion [event trace]
+(defn enabled-by-completion
+  "Returns a sequence of the future-read events in `trace` that are enabled by
+  `event`, which is expected to be a completion event."
+  [event trace]
   (enables (partial = (assoc event :event-type :future-read)) trace))
 
-;; All events that are enabled by the event with the given event key
-(defn enabled-by [event-key trace]
+(defn enabled-by
+  "Returns a sequence of the events that are enabled by the event identified by
+  `event-key` in `trace`."
+  [event-key trace]
   (let [event (get-in trace event-key)]
     (case (:event-type event)
       :invocation (enabled-by-invoc event trace)
       :completed (enabled-by-completion event trace)
       #{})))
 
-;; All non-schedule events in the schedule until the next schedule event
-(defn schedule-bulk [trace schedule]
+(defn schedule-bulk
+  "Returns a sequence of the non-schedule events in `schedule` until the next
+  schedule event in `trace`."
+  [trace schedule]
   (-> (fn [k] (-> (event-key-type trace k) (not= :schedule)))
       (take-while schedule)))
 
-;; The first event from each cog (with regards to the task number)
-(defn one-per-cog [event-keys]
+(defn one-per-cog
+  "Returns a sequence of the first event from each cog."
+  [event-keys]
   (let [cogs (group-by first event-keys)]
     (set (map (comp first (partial sort-by second)) (vals cogs)))))
 
-;; A set of lists, where each list represents a "schedule run" for a cog. The first element
-;; in the schedule run is a schedule event for a task, and the following events are possible
-;; invocations done by the task, followed by a completion event for the task.
-;;
-;; Note: Assumes that the first event in all schedules (i.e. x below) is a schedule event
-(defn one-schedule-run-per-cog [trace event-keys]
+(defn one-schedule-run-per-cog
+  "Returns a set of lists, where each list represents a 'schedule run' for a cog
+  in `trace` identified by `event-keys`. The first element in each schedule run
+  is a schedule event for a task, and the following events are possible
+  invocations done by the task, followed by a completion event for the task.
+  
+  Note: Assumes that the first event in all schedules is a schedule event."
+  [trace event-keys]
   (let [cogs (group-by first event-keys)]
     (reduce (fn [res [cog schedule]]
               (let [[x & xs] (sort-by second schedule)
@@ -65,9 +79,15 @@
             #{}
             cogs)))
 
-;; A list of lists, where each list starts with a schedule event, followed by possible
-;; invocation events and a completion event for the task that was scheduled.
-(defn schedule-runs [trace event-keys]
+(defn schedule-runs
+  "Returns a sequence of lists, where each list represents a 'schedule run' for
+  a cog in `trace` identified by `event-keys`. The first element in each
+  schedule run is a schedule event for a task, and the following events are
+  possible invocations done by the task, followed by a completion event for the
+  task.
+  
+  Note: Assumes that the first event in all schedules is a schedule event."
+  [trace event-keys]
   (when-not (empty? event-keys)
     (let [[x & xs] event-keys
           [run ys] (split-with (comp (partial not= :schedule)
@@ -75,29 +95,34 @@
                                xs)]
       (cons (cons x run) (schedule-runs trace ys)))))
 
-;; Returns the blocked events, but makes sure to remove main and init from the
-;; returned value. A special case is needed for these events, seeing as they are
-;; the first events in each cog, and normally an event is unblocked by another
-;; event being done.
-(defn unblock-init [trace]
+(defn unblock-init
+  "Returns a sequence of the blocked events in `trace`, but makes sure to remove
+  main and init from the returned value. A special case is needed for these
+  events, seeing as they are the first events in each cog, and normally an event
+  is unblocked by another event being done."
+  [trace]
   (let [inits (set (map (fn [cog] [cog 0]) (keys trace)))]
     (difference (blocked-events trace) inits)))
 
-;; Makes event keys for a cog consisting of the cog's id followed by a number
-;; between 0 and the number of events in the schedule
-(defn cog-local-trace->event-keys [cog schedule]
+
+(defn cog-local-trace->event-keys
+  "Returns a sequence of event keys based on a `cog` and its `schedule`, where
+  each key consists of `cog`'s id and a number between 0 and the size of
+  `schedule`."
+  [cog schedule]
   (for [i (range (count schedule))]
     [cog i]))
 
-;; Produces event keys for each cog in the trace
-(defn trace->event-keys [trace]
+(defn trace->event-keys
+  "Returns a sequence of event keys for each cog in `trace`."
+  [trace]
   (-> (fn [res [cog schedule]]
         (into res (cog-local-trace->event-keys cog schedule)))
       (reduce #{} trace)))
 
-;; Attempts to calculcate the process queue at each stage in the execution,
-;; giving the result as a tree
 #_(defn trace->queue-tree
+    "Attempts to calculate the process queue at each stage in the execution,
+    giving the result as a tree."
     ([trace] (let [blocked (unblock-init trace)
                    pending (trace->event-keys trace)]
                (trace->queue-tree trace blocked pending)))
@@ -110,8 +135,8 @@
           :actions (filter ? entries)
           :children (map (fn [?] (trace->queue-tree )) actions)}))))
 
-;; Calculates all possible known paths in the execution from a given trace
 (defn trace->process-paths
+  "Returns a sequence of all possible known paths in the execution from `trace`."
   ([trace] (let [blocked (unblock-init trace)
                  pending (trace->event-keys trace)]
              (trace->process-paths trace blocked pending)))
@@ -133,8 +158,9 @@
                       (difference pending (set x))))))
             (apply concat))))))
 
-;; A list consisting of process queues at each step of execution in a trace
 (defn trace->process-queues
+  "Returns a list consisting of process quques at each step of the execution
+  for `trace`."
   ([trace] (let [blocked (unblock-init trace)
                  pending (trace->event-keys trace)]
              (trace->process-queues trace blocked pending nil)))
@@ -151,8 +177,9 @@
                     (filter (fn [k] (= (event-key-type trace k) :schedule))
                             (difference pending blocked))))))))
 
-;; Converts a trace to a history where each point in the history is a schedule run
 (defn trace->schedule-history
+  "Returns a global history corresponding to `trace`, where each point in the
+  history is a schedule run."
   ([trace] (let [blocked (unblock-init trace)
                  pending (trace->event-keys trace)]
              (trace->schedule-history trace blocked pending nil)))
@@ -167,9 +194,8 @@
               (difference pending entries)
               (conj history entries))))))
 
-;; Converts a trace to a global history where each point in the history
-;; is at most one event from each cog
 (defn trace->history
+  "Returns a global history corresponding to `trace`."
   ([trace] (let [blocked (unblock-init trace)
                  pending (trace->event-keys trace)]
              (trace->history trace blocked pending nil)))
@@ -184,8 +210,11 @@
               (difference pending entries)
               (conj history entries))))))
 
-;; Converts a global history to a trace for each cog
 (defn history->trace [trace history]
+  "Returns a trace corresponding to `history`. Its intented use is to convert
+  a global history back to a trace, after first having converted a trace to this
+  history. Since the history does not contain all information about each event,
+  the original trace is required to make an accurate conversion."
   (-> (fn [res event-keys]
         (-> (fn [res2 [cog i]]
               (let [e (get-in trace [cog i])]

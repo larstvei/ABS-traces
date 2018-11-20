@@ -1,6 +1,6 @@
 (ns visualize-traces-clj.dpor
   "Contains functions used to perform Dynamic Partial Order Reduction (DPOR) on ABS models."
-  (:require [clojure.set :refer [difference]]
+  (:require [clojure.set :refer [difference union]]
             [visualize-traces-clj.example-traces :refer :all]
             [visualize-traces-clj.event-keys :refer :all]))
 
@@ -63,7 +63,7 @@
 (defn schedule-bulks [[s & local-trace]]
   (when s
     (let [[r next] (-> (comp (partial not= :schedule) :event-type)
-                         (split-with local-trace))]
+                       (split-with local-trace))]
       (cons (cons s r) (schedule-bulks next)))))
 
 (defn enabled-by-schedule [event-key trace]
@@ -89,7 +89,7 @@
   is a schedule event for a task, and the following events are possible
   invocations and future-reads done by the task, followed by a completion event
   for the task.
-  
+
   Note: Assumes that the first event in all schedules is a schedule event."
   [trace event-keys]
   (let [cogs (group-by first event-keys)]
@@ -106,7 +106,7 @@
   schedule run is a schedule event for a task, and the following events are
   possible invocations and future-reads done by the task, followed by a
   completion event for the task.
-  
+
   Note: Assumes that the first event in all schedules is a schedule event."
   [trace event-keys]
   (when-not (empty? event-keys)
@@ -234,17 +234,23 @@
             (reduce res event-keys)))
       (reduce {} history)))
 
+(defn trim-trace [trace fat]
+  (reduce (fn [t [cog i]]
+            (let [trim (comp vec (partial take i))]
+              (update t cog trim)))
+          trace fat))
+
 (defn update-after-move [trace cog i j]
   (let [local (trace cog)
         e1 (event-key->event trace [cog i])
         e1-enables (enabled-by-schedule [cog i] trace)
         e2-enables (enabled-by-schedule [cog j] trace)]
-    (if (or (not (pos? j)) (e2-enables [cog i]))
+    (if (or (not (pos? j))              ; special case for main and init
+            (e2-enables [cog i]))
       trace
       (-> trace
           (assoc cog (conj (vec (take j local)) e1))
-          ;; Remove stuff e1 and e2 enables
-          ))))
+          (trim-trace (union e1-enables e2-enables))))))
 
 (defn move-backwards [trace [cog i]]
   (let [e1 (event-key->event trace [cog i])

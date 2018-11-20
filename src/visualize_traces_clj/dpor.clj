@@ -60,6 +60,12 @@
                      (take-while schedule) count)]
     (cons [cog id] (map (fn [i] [cog (+ id i 1)]) (range bulksize)))))
 
+(defn schedule-bulks [[s & local-trace]]
+  (when s
+    (let [[r next] (-> (comp (partial not= :schedule) :event-type)
+                         (split-with local-trace))]
+      (cons (cons s r) (schedule-bulks next)))))
+
 (defn enabled-by-schedule [event-key trace]
   (let [events (->> (schedule-bulk trace event-key)
                     (mapcat #(enabled-by % trace)) set)]
@@ -211,19 +217,10 @@
      (let [candidates (one-per-cog pending)
            entries (difference candidates blocked)
            enabled (set (mapcat #(enabled-by % trace) entries))]
-       #_(when-let [future-reads
-                  (->> entries
-                       (map (partial event-key->event trace))
-                       (filter (comp (partial = :future-read) :event-type))
-                       not-empty)]
-         (prn future-reads))
-       (if (empty? entries)
-         (reverse history)
-         #_{:bug? candidates}
-         (recur trace
-                (difference blocked enabled)
-                (difference pending entries)
-                (conj history entries)))))))
+       (recur trace
+              (difference blocked enabled)
+              (difference pending entries)
+              (conj history entries))))))
 
 (defn history->trace [trace history]
   "Returns a trace corresponding to `history`. Its intented use is to convert
@@ -236,3 +233,45 @@
                 (update res2 cog (fnil conj []) e)))
             (reduce res event-keys)))
       (reduce {} history)))
+
+(defn update-after-move [trace cog i j]
+  (let [local (trace cog)
+        e1 (event-key->event trace [cog i])
+        e1-enables (enabled-by-schedule [cog i] trace)
+        e2-enables (enabled-by-schedule [cog j] trace)]
+    (if (or (not (pos? j)) (e2-enables [cog i]))
+      trace
+      (-> trace
+          (assoc cog (conj (vec (take j local)) e1))
+          ;; Remove stuff e1 and e2 enables
+          ))))
+
+(defn move-backwards [trace [cog i]]
+  (let [e1 (event-key->event trace [cog i])
+        local (take i (trace cog))
+        j (- i (-> (comp (partial not= :schedule) :event-type)
+                   (take-while (reverse local))
+                   count inc))]
+    (update-after-move trace cog i j)))
+
+(defn generate-trace [trace e2]
+  (let [new-trace (move-backwards trace e2)
+        ;; e1-enables (enabled-by-schedule e1 trace)
+        ;; e2-enables (enabled-by-schedule )
+        ]
+    new-trace))
+
+(defn trace->dpor-traces [trace]
+  ;; Idé: I hver cog c1, gå gjennom hver event e1. Hvis e1 enabler e2 som er i
+  ;;      en cog c2, der c1 /= c2, flytt e2 så langt bak i c2 sin lokale trace
+  ;;      som mulig. Vi kan flytte e2 bakover, så lenge e_i ikke enabler e2.
+  ;;      Alt som kommer etter der e2 plasseres og alt som er enabled
+  ;;      (transitivt) av e2 må droppes.
+  (let [event-keys (trace->event-keys trace)]
+    (loop [[r & rs] (schedule-runs trace event-keys)
+           new-traces #{}]
+      (if-not r
+        new-traces
+        (let [ts (set (mapcat #(enabled-by % trace) r))
+              new (map (partial generate-trace trace) ts)]
+          (recur rs (into new-traces new)))))))

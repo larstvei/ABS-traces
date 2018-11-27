@@ -21,27 +21,28 @@
     (catch Exception e nil)))
 
 (defn key-handler [state event]
-  (q/redraw)
-  (let [n (count (:history state))]
-   (case (q/key-as-keyword)
-     :?    (update state :help not)
+  (let [n (count (:history state))
+        state (case (q/key-as-keyword)
+                :? (update state :help not)
 
-     :up   (update state :start (comp (partial max 0) dec))
+                :up (update state :start (comp (partial max 0) dec))
 
-     :down (let [m (- n (:height state))]
-             (update state :start (comp (partial min m) inc)))
+                :down (let [m (- n (:height state))]
+                        (update state :start (comp (partial min m) inc)))
 
-     :- (update state :height (comp (partial max 1) dec))
+                :- (update state :height (comp (partial max 1) dec))
 
-     :+ (update state :height (comp (partial min n) inc))
+                :+ (update state :height (comp (partial min n) inc))
 
-     := (update state :height (comp (partial min n) inc))
+                := (update state :height (comp (partial min n) inc))
 
-     :l (if-let [new-trace (get-trace-from-simulator)]
-          (setup new-trace)
-          state)
+                :l (if-let [new-trace (get-trace-from-simulator)]
+                     (setup new-trace)
+                     state)
 
-     state)))
+                state)]
+    (q/redraw)
+    state))
 
 (defn ^:export run-sketch []
   (q/defsketch visualize-traces-clj

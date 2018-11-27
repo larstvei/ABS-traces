@@ -47,12 +47,16 @@
             j (.indexOf cogs cog)
             x (* wd (inc j))
             y (+ (* (inc i) hd)
-                 (if (even? j) (- (/ hd 8)) (/ hd 8)))]
+                 (if (even? j) (- (/ hd 8)) (/ hd 8)))
+            tl (/ (q/text-width method) 2)
+            tx (cond (neg? (- x tl)) (+ x (/ tl 2))
+                     (> (+ x tl) (q/width)) (- x (/ tl 2))
+                     :else x)]
         (apply q/fill (event-color task))
         (q/no-stroke)
         (q/ellipse x y 15 15)
         (q/fill 0)
-        (q/text method x (- y (/ hd 4)))
+        (q/text method tx (- y (/ hd 4)))
         (q/text (name type) x (+ y (/ hd 4)))
         (q/stroke 0)
         (doseq [[cog2 id2] (enabled-by [cog id] trace)]

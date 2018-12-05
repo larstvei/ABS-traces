@@ -11,7 +11,7 @@
         (keep-indexed
          (fn [i event]
            (when (or (and (= (:event-type event) :schedule)
-                          (not (#{:init :main :run} (:task-id event))))
+                          (not (= :main (:local-id event))))
                      (= (:event-type event) :future-read))
              [cog i])) schedule))
       (mapcat trace) set))
@@ -29,6 +29,15 @@
                     (not-empty))))
        (apply concat)))
 
+(defn enabled-by-new-object
+  "Returns a sequence of the schedule events in `trace` that are enabled by
+  `event`, which is expected to be a new object event."
+  [event trace]
+  (let [event2 (-> event
+                   (assoc :event-type :schedule)
+                   (assoc :name :init))]
+    (enables (partial = event2) trace)))
+
 (defn enabled-by-invoc
   "Returns a sequence of the schedule events in `trace` that are enabled by
   `event`, which is expected to be an invocation event."
@@ -41,14 +50,29 @@
   [event trace]
   (enables (partial = (assoc event :event-type :future-read)) trace))
 
+(defn enabled-by-init
+  "Returns a set containing a schedule `event` of the run method if present,
+  else return an empty set."
+  [[cog _] trace]
+  (let [local-trace (trace cog)]
+    (keep-indexed
+     (fn [i event]
+       (when (= (:local-id event) :run)
+         [cog i]))
+     local-trace)))
+
 (defn enabled-by
   "Returns a sequence of the events that are enabled by the event identified by
   `event-key` in `trace`."
   [event-key trace]
   (let [event (get-in trace event-key)]
     (case (:event-type event)
+      :new-object (enabled-by-new-object event trace)
       :invocation (enabled-by-invoc event trace)
       :completed (enabled-by-completion event trace)
+      :schedule (if (= (:name event) :init)
+                  (enabled-by-init event-key trace)
+                  #{})
       #{})))
 
 (defn schedule-bulk
@@ -77,7 +101,7 @@
   (-> (fn [k] (-> (event-key-type trace k) (not= :schedule)))
       (take-while schedule)))
 
-(defn one-per-cog
+(defn next-event-per-cog
   "Returns a sequence of the first event from each cog."
   [event-keys]
   (let [cogs (group-by first event-keys)]
@@ -214,7 +238,7 @@
   ([trace blocked pending history]
    (if (empty? pending)
      (reverse history)
-     (let [candidates (one-per-cog pending)
+     (let [candidates (next-event-per-cog pending)
            entries (difference candidates blocked)
            enabled (set (mapcat #(enabled-by % trace) entries))]
        (recur trace

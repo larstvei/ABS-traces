@@ -4,6 +4,7 @@
             [clojure.string :as s]
             [quil.core :as q :include-macros true]
             [quil.middleware :as m]
+            [visualize-traces-clj.dpor :refer :all]
             [visualize-traces-clj.draw :refer [draw-state setup]]
             [visualize-traces-clj.example-traces :refer :all]))
 
@@ -48,9 +49,11 @@
   (q/defsketch visualize-traces-clj
     :host "visualize-traces-clj"
     :size [800 1000]
-    :setup (partial setup example-trace)
+    :setup (partial setup shared-buffer-example-trace)
     :key-pressed key-handler
     :draw draw-state
     :settings (partial q/pixel-density 2)
     :features [:resizable]
     :middleware [m/fun-mode m/pause-on-error]))
+
+#_(run-sketch)

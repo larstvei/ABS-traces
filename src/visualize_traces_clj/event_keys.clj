@@ -8,8 +8,8 @@
   (get-in trace (conj event-key :event-type)))
 
 (defn event-key-method [trace event-key]
-  (or (get-in trace (conj event-key :method))
-      (get-in trace (conj event-key :task-id))))
+  (or (get-in trace (conj event-key :name))
+      (get-in trace (conj event-key :local-id))))
 
 (defn event-key-method-name [trace event-key]
   (let [method (event-key-method trace event-key)]
@@ -17,4 +17,4 @@
 
 (defn event-key-task [trace event-key]
   (let [event (event-key->event trace event-key)]
-    [(or (:caller-id event) (first event-key)) (:task-id event)]))
+    [(or (:caller-id event) (first event-key)) (:local-id event)]))

@@ -10,9 +10,9 @@
   (-> (fn [[cog schedule]]
         (keep-indexed
          (fn [i event]
-           (when (or (and (= (:event-type event) :schedule)
+           (when (or (and (= (:type event) :schedule)
                           (not (= :main (:local-id event))))
-                     (= (:event-type event) :future-read))
+                     (= (:type event) :future-read))
              [cog i])) schedule))
       (mapcat trace) set))
 
@@ -34,7 +34,7 @@
   `event`, which is expected to be a new object event."
   [event trace]
   (let [event2 (-> event
-                   (assoc :event-type :schedule)
+                   (assoc :type :schedule)
                    (assoc :name :init))]
     (enables (partial = event2) trace)))
 
@@ -42,13 +42,17 @@
   "Returns a sequence of the schedule events in `trace` that are enabled by
   `event`, which is expected to be an invocation event."
   [event trace]
-  (enables (partial = (assoc event :event-type :schedule)) trace))
+  (enables (partial = (assoc event :type :schedule)) trace))
 
 (defn enabled-by-completion
   "Returns a sequence of the future-read events in `trace` that are enabled by
   `event`, which is expected to be a completion event."
   [event trace]
-  (enables (partial = (assoc event :event-type :future-read)) trace))
+  (let [event2 (-> (assoc event :type :future-read)
+                   (select-keys [:type :local-id]))
+        pred (comp (partial = event2)
+                   #(select-keys % [:type :local-id]))]
+    (enables pred trace)))
 
 (defn enabled-by-init
   "Returns a set containing a schedule `event` of the run method if present,
@@ -66,10 +70,10 @@
   `event-key` in `trace`."
   [event-key trace]
   (let [event (get-in trace event-key)]
-    (case (:event-type event)
+    (case (:type event)
       :new-object (enabled-by-new-object event trace)
       :invocation (enabled-by-invoc event trace)
-      :completed (enabled-by-completion event trace)
+      :future-write (enabled-by-completion event trace)
       :schedule (if (= (:name event) :init)
                   (enabled-by-init event-key trace)
                   #{})
@@ -80,13 +84,13 @@
   next schedule event in `trace`."
   [trace [cog id]]
   (let [schedule (drop (inc id) (trace cog))
-        bulksize (-> (comp (partial not= :schedule) :event-type)
+        bulksize (-> (comp (partial not= :schedule) :type)
                      (take-while schedule) count)]
     (cons [cog id] (map (fn [i] [cog (+ id i 1)]) (range bulksize)))))
 
 (defn schedule-bulks [[s & local-trace]]
   (when s
-    (let [[r next] (-> (comp (partial not= :schedule) :event-type)
+    (let [[r next] (-> (comp (partial not= :schedule) :type)
                        (split-with local-trace))]
       (cons (cons s r) (schedule-bulks next)))))
 
@@ -279,7 +283,7 @@
 (defn move-backwards [trace [cog i]]
   (let [e1 (event-key->event trace [cog i])
         local (take i (trace cog))
-        j (- i (-> (comp (partial not= :schedule) :event-type)
+        j (- i (-> (comp (partial not= :schedule) :type)
                    (take-while (reverse local))
                    count inc))]
     (update-after-move trace cog i j)))

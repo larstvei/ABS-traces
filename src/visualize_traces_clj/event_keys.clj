@@ -5,7 +5,7 @@
   (get-in trace event-key))
 
 (defn event-key-type [trace event-key]
-  (get-in trace (conj event-key :event-type)))
+  (get-in trace (conj event-key :type)))
 
 (defn event-key-method [trace event-key]
   (or (get-in trace (conj event-key :name))

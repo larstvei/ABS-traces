@@ -53,7 +53,7 @@
     :key-pressed key-handler
     :draw draw-state
     :settings (partial q/pixel-density 2)
-    :features [:resizable]
-    :middleware [m/fun-mode m/pause-on-error]))
+    :features [:resizable :no-bind-output]
+    :middleware [m/fun-mode]))
 
 #_(run-sketch)

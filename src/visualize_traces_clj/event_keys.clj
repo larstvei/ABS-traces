@@ -8,8 +8,10 @@
   (get-in trace (conj event-key :type)))
 
 (defn event-key-method [trace event-key]
-  (or (get-in trace (conj event-key :name))
-      (get-in trace (conj event-key :local-id))))
+  (let [name (get-in trace (conj event-key :name))]
+    (if (or (nil? name) (= name :undefined))
+      (get-in trace (conj event-key :local-id))
+      name)))
 
 (defn event-key-method-name [trace event-key]
   (let [method (event-key-method trace event-key)]

@@ -1,4 +1,5 @@
 (ns visualize-traces-clj.core
+  (:gen-class)
   (:require [clj-http.client :as h]
             [clojure.data.json :as json]
             [clojure.string :as s]
@@ -67,5 +68,8 @@
     :settings (partial q/pixel-density 2)
     :features [:resizable :no-bind-output]
     :middleware [m/fun-mode]))
+
+(defn -main [& args]
+  (run-sketch))
 
 #_(run-sketch)

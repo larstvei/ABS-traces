@@ -66,7 +66,15 @@
                 y2 (+ (* (inc l) hd)
                       (if (even? k) (- (/ hd 8)) (/ hd 8)))
                 method (event-key-method-name trace [cog id])]
-            (dotted-arrow x y x2 y2)))))))
+            (if (= cog cog2)
+              (let [n (quot (q/dist x y x2 y2) 10)]
+               (dotimes [k (- n 2)]
+                 (q/point (- x (* (/ wd 2) (q/sin (* (/ k n) q/PI))))
+                          (q/lerp y y2 (/ (inc k) n))))
+               (dotted-arrow (- x (* (/ wd 2) (q/sin (* (/ (- n 2) n) q/PI))))
+                             (q/lerp y y2 (/ (dec n) n))
+                             x2 y2))
+              (dotted-arrow x y x2 y2))))))))
 
 (defn draw-state [state]
   (q/background 255)

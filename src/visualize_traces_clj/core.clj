@@ -50,10 +50,11 @@
            (setup new-trace)
            state)
 
-      :c (let [t (advance-simulator-clock)]
-           (merge state {:trace t
-                         :history (trace->history t)
-                         :cogs (keys t)}))
+      :c (let [t (advance-simulator-clock)
+               h (trace->history t)]
+           {:trace t :history h :cogs (keys t)
+            :height (max (min (count h) 10) (:height state))
+            :start (max 0 (:start state))})
 
       state)))
 

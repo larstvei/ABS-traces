@@ -27,10 +27,10 @@
   ([n] (try
          (-> (str "http://localhost:8080/clock/advance?by=" n)
              (h/get {:accept :json}))
+         (get-trace-from-simulator)
          (catch Exception e nil))))
 
 (defn key-handler [state event]
-  (q/redraw)
   (let [n (count (:history state))]
     (case (q/key-as-keyword)
       :? (update state :help not)
@@ -50,11 +50,10 @@
            (setup new-trace)
            state)
 
-      :c (do (advance-simulator-clock)
-             (let [t (get-trace-from-simulator)]
-               (merge state {:trace t
-                             :history (trace->history t)
-                             :cogs (keys t)})))
+      :c (let [t (advance-simulator-clock)]
+           (merge state {:trace t
+                         :history (trace->history t)
+                         :cogs (keys t)}))
 
       state)))
 

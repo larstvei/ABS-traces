@@ -5,6 +5,7 @@
             [visualize-traces-clj.utils :refer :all]))
 
 (defn setup [trace]
+  (q/frame-rate 10)
   (q/color-mode :hsb)
   (q/text-align :center :center)
   (q/text-font (q/create-font "monospace" 12))
@@ -43,9 +44,10 @@
         times (map #(:local-id (get-in trace %)) events)
         max-time (str (apply max times))
         w (q/text-width max-time)]
-    (q/line (/ wd 2) y (- (/ (q/width) 2) w) y)
-    (q/line (+ (/ (q/width) 2) w) y (- (q/width) (/ wd 2)) y)
-    (q/text (str max-time) (/ (q/width) 2) y)))
+    (q/with-stroke [0]
+      (q/line (/ wd 2) y (- (/ (q/width) 2) w) y)
+      (q/line (+ (/ (q/width) 2) w) y (- (q/width) (/ wd 2)) y)
+      (q/text (str max-time) (/ (q/width) 2) y))))
 
 (defn draw-events [trace history cogs wd hd]
   (doseq [[i events] (map-indexed vector history)]
@@ -96,5 +98,4 @@
         hd (/ (q/height) (inc m))]
     (draw-grid n m (/ wd 2) hd)
     (draw-cogs (:cogs state) wd hd)
-    (draw-events (:trace state) history (:cogs state) wd hd))
-  (q/no-loop))
+    (draw-events (:trace state) history (:cogs state) wd hd)))

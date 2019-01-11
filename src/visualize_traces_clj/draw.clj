@@ -38,43 +38,54 @@
           y (/ hd 3)]
       (q/text (str cog) x y))))
 
+(defn draw-time [trace events i wd hd]
+  (let [y (* (inc i) hd)
+        times (map #(:local-id (get-in trace %)) events)
+        max-time (str (apply max times))
+        w (q/text-width max-time)]
+    (q/line (/ wd 2) y (- (/ (q/width) 2) w) y)
+    (q/line (+ (/ (q/width) 2) w) y (- (q/width) (/ wd 2)) y)
+    (q/text (str max-time) (/ (q/width) 2) y)))
+
 (defn draw-events [trace history cogs wd hd]
   (doseq [[i events] (map-indexed vector history)]
-    (doseq [[cog id] events]
-      (let [type (event-key-type trace [cog id])
-            task (event-key-task trace [cog id])
-            method (event-key-method-name trace [cog id])
-            j (.indexOf cogs cog)
-            x (* wd (inc j))
-            y (+ (* (inc i) hd)
-                 (if (even? j) (- (/ hd 8)) (/ hd 8)))
-            tl (/ (q/text-width method) 2)
-            tx (cond (neg? (- x tl)) (+ x (/ tl 2))
-                     (> (+ x tl) (q/width)) (- x (/ tl 2))
-                     :else x)]
-        (apply q/fill (event-color task))
-        (q/no-stroke)
-        (q/ellipse x y 15 15)
-        (q/fill 0)
-        (q/text method tx (- y (/ hd 4)))
-        (q/text (name type) x (+ y (/ hd 4)))
-        (q/stroke 0)
-        (doseq [[cog2 id2] (enabled-by [cog id] trace)]
-          (let [k (.indexOf cogs cog2)
-                l (count (take-while (complement #(% [cog2 id2])) history))
-                x2 (* wd (inc k))
-                y2 (+ (* (inc l) hd)
-                      (if (even? k) (- (/ hd 8)) (/ hd 8)))
-                method (event-key-method-name trace [cog id])]
-            (if (= cog cog2)
-              (let [n (quot (q/dist x y x2 y2) 10)]
-               (dotimes [k (- n 2)]
-                 (q/point (- x (* (/ wd 2) (q/sin (* (/ k n) q/PI))))
-                          (q/lerp y y2 (/ (inc k) n))))
-               (dotted-arrow (- x (* (/ wd 2) (q/sin (* (/ (- n 2) n) q/PI))))
-                             (q/lerp y y2 (/ (dec n) n))
-                             x2 y2))
-              (dotted-arrow x y x2 y2))))))))
+    (if (= (event-key-type trace (first events)) :time)
+      (draw-time trace events i wd hd)
+      (doseq [[cog id] events]
+        (let [type (event-key-type trace [cog id])
+              task (event-key-task trace [cog id])
+              method (event-key-method-name trace [cog id])
+              j (.indexOf cogs cog)
+              x (* wd (inc j))
+              y (+ (* (inc i) hd)
+                   (if (even? j) (- (/ hd 8)) (/ hd 8)))
+              tl (/ (q/text-width method) 2)
+              tx (cond (neg? (- x tl)) (+ x (/ tl 2))
+                       (> (+ x tl) (q/width)) (- x (/ tl 2))
+                       :else x)]
+          (apply q/fill (event-color task))
+          (q/no-stroke)
+          (q/ellipse x y 15 15)
+          (q/fill 0)
+          (q/text method tx (- y (/ hd 4)))
+          (q/text (name type) x (+ y (/ hd 4)))
+          (q/stroke 0)
+          (doseq [[cog2 id2] (enabled-by [cog id] trace)]
+            (let [k (.indexOf cogs cog2)
+                  l (count (take-while (complement #(% [cog2 id2])) history))
+                  x2 (* wd (inc k))
+                  y2 (+ (* (inc l) hd)
+                        (if (even? k) (- (/ hd 8)) (/ hd 8)))
+                  method (event-key-method-name trace [cog id])]
+              (if (= cog cog2)
+                (let [n (quot (q/dist x y x2 y2) 10)]
+                  (dotimes [k (- n 2)]
+                    (q/point (- x (* (/ wd 2) (q/sin (* (/ k n) q/PI))))
+                             (q/lerp y y2 (/ (inc k) n))))
+                  (dotted-arrow (- x (* (/ wd 2) (q/sin (* (/ (- n 2) n) q/PI))))
+                                (q/lerp y y2 (/ (dec n) n))
+                                x2 y2))
+                (dotted-arrow x y x2 y2)))))))))
 
 (defn draw-state [state]
   (q/background 255)

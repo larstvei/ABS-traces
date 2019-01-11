@@ -244,11 +244,19 @@
      (reverse history)
      (let [candidates (next-event-per-cog pending)
            entries (difference candidates blocked)
+           m (group-by (partial event-key-type trace) entries)
+           entries (if (empty? (dissoc m :time))
+                     (set (:time m))
+                     (difference entries (:time m)))
            enabled (set (mapcat #(enabled-by % trace) entries))]
-       (recur trace
-              (difference blocked enabled)
-              (difference pending entries)
-              (conj history entries))))))
+       (if (empty? entries)
+         (do (prn "Incomplete trace?")
+             (prn (count candidates) "events that can't be placed in a global history.")
+             (reverse history))
+         (recur trace
+                (difference blocked enabled)
+                (difference pending entries)
+                (conj history entries)))))))
 
 (defn history->trace [trace history]
   "Returns a trace corresponding to `history`. Its intented use is to convert

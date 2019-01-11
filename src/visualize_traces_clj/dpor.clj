@@ -49,9 +49,9 @@
   `event`, which is expected to be a completion event."
   [event trace]
   (let [event2 (-> (assoc event :type :future-read)
-                   (select-keys [:type :local-id]))
+                   (select-keys [:type :local-id :caller-id]))
         pred (comp (partial = event2)
-                   #(select-keys % [:type :local-id]))]
+                   #(select-keys % [:type :local-id :caller-id]))]
     (enables pred trace)))
 
 (defn enabled-by-init

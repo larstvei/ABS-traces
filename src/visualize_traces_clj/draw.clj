@@ -4,18 +4,21 @@
             [visualize-traces-clj.event-keys :refer :all]
             [visualize-traces-clj.utils :refer :all]))
 
-(defn setup [trace]
+
+(defn make-state [trace]
+  (let [history (trace->history trace)]
+    {:trace trace
+     :cogs (keys trace)
+     :history history}))
+
+(defn setup [traces]
   (q/frame-rate 10)
   (q/color-mode :hsb)
   (q/text-align :center :center)
   (q/text-font (q/create-font "monospace" 12))
   (q/stroke-weight 2)
-  (let [history (trace->history trace)]
-    {:trace trace
-     :cogs (keys trace)
-     :history history
-     :start 0
-     :height (min (count history) 10)}))
+  {:states (mapv make-state traces)
+   :current 0 :start 0 :height 10})
 
 (def event-color
   (memoize
@@ -39,15 +42,17 @@
           y (/ hd 3)]
       (q/text (str cog) x y))))
 
-(defn draw-time [trace events i wd hd]
-  (let [y (* (inc i) hd)
-        times (map #(:local-id (get-in trace %)) events)
-        max-time (str (apply max times))
-        w (q/text-width max-time)]
-    (q/with-stroke [0]
-      (q/line (/ wd 2) y (- (/ (q/width) 2) w) y)
-      (q/line (+ (/ (q/width) 2) w) y (- (q/width) (/ wd 2)) y)
-      (q/text (str max-time) (/ (q/width) 2) y))))
+(defn draw-time [trace history wd hd]
+  (loop [i 0.0 t1 0 [x & xs] history]
+    (when-let [t2 (event-key-time trace (first x))]
+      (when (< t1 t2)
+        (let [x1 (/ wd 2)
+              x2 (- (q/width) x1)
+              y (- (* (inc i) hd) (/ hd 2))]
+          (q/with-stroke [0]
+            (q/line x1 y x2 y))
+          (q/text (str t2) (/ wd 4) y)))
+      (recur (inc i) t2 xs))))
 
 (defn draw-events [trace history cogs wd hd]
   (doseq [[i events] (map-indexed vector history)]
@@ -73,30 +78,35 @@
           (q/text (name type) x (+ y (/ hd 4)))
           (q/stroke 0)
           (when-not (= method "init")
-           (doseq [[cog2 id2] (enabled-by [cog id] trace)]
-             (let [k (.indexOf cogs cog2)
-                   l (count (take-while (complement #(% [cog2 id2])) history))
-                   x2 (* wd (inc k))
-                   y2 (+ (* (inc l) hd)
-                         (if (even? k) (- (/ hd 8)) (/ hd 8)))
-                   method (event-key-method-name trace [cog id])]
-               (if (= cog cog2)
-                 (let [n (quot (q/dist x y x2 y2) 10)]
-                   (dotimes [k (- n 2)]
-                     (q/point (- x (* (/ wd 2) (q/sin (* (/ k n) q/PI))))
-                              (q/lerp y y2 (/ (inc k) n))))
-                   (dotted-arrow (- x (* (/ wd 2) (q/sin (* (/ (- n 2) n) q/PI))))
-                                 (q/lerp y y2 (/ (dec n) n))
-                                 x2 y2))
-                 (dotted-arrow x y x2 y2))))))))))
+            (doseq [[cog2 id2] (enabled-by [cog id] trace)]
+              (let [k (.indexOf cogs cog2)
+                    l (count (take-while (complement #(% [cog2 id2])) history))
+                    x2 (* wd (inc k))
+                    y2 (+ (* (inc l) hd)
+                          (if (even? k) (- (/ hd 8)) (/ hd 8)))
+                    method (event-key-method-name trace [cog id])]
+                (if (= cog cog2)
+                  (let [n (quot (q/dist x y x2 y2) 10)]
+                    (dotimes [k (- n 2)]
+                      (q/point (- x (* (/ wd 2) (q/sin (* (/ k n) q/PI))))
+                               (q/lerp y y2 (/ (inc k) n))))
+                    (dotted-arrow (- x (* (/ wd 2) (q/sin (* (/ (- n 2) n) q/PI))))
+                                  (q/lerp y y2 (/ (dec n) n))
+                                  x2 y2))
+                  (dotted-arrow x y x2 y2))))))))))
 
-(defn draw-state [state]
-  (q/background 255)
-  (let [history (take (:height state) (drop (:start state) (:history state)))
+(defn draw-state [{:keys [:states :current :start :height]}]
+  (let [state (states current)
+        history (take height (drop start (:history state)))
         n (count (:cogs state))
         m (count history)
         wd (/ (q/width) (inc n))
         hd (/ (q/height) (inc m))]
+    (q/background 255)
     (draw-grid n m (/ wd 2) hd)
     (draw-cogs (:cogs state) wd hd)
-    (draw-events (:trace state) history (:cogs state) wd hd)))
+    (draw-time (:trace state) history wd hd)
+    (draw-events (:trace state) history (:cogs state) wd hd)
+    (when (> (count states) 1)
+      (q/text (str (inc current) "/" (count states))
+              (/ (q/width) 2) (- (q/height) (/ hd 4))))))

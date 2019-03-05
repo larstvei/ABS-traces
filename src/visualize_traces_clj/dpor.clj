@@ -11,8 +11,8 @@
         (keep-indexed
          (fn [i event]
            (when (or (and (= (:type event) :schedule)
-                          (not (= :main (:local-id event))))
-                     (= (:type event) :future-read))
+                          (not (= :main (:local_id event))))
+                     (= (:type event) :future_read))
              [cog i])) schedule))
       (mapcat trace) set))
 
@@ -23,7 +23,7 @@
        (keep (fn [[cog schedule]]
                (->> schedule
                     (map-indexed vector)
-                    (filter (comp pred second))
+                    (filter (comp pred #(select-keys % [:type :local_id :caller_id :name]) second))
                     (map first)
                     (map (partial vector cog))
                     (not-empty))))
@@ -48,10 +48,10 @@
   "Returns a sequence of the future-read events in `trace` that are enabled by
   `event`, which is expected to be a completion event."
   [event trace]
-  (let [event2 (-> (assoc event :type :future-read)
-                   (select-keys [:type :local-id :caller-id]))
+  (let [event2 (-> (assoc event :type :future_read)
+                   (select-keys [:type :local_id :caller_id]))
         pred (comp (partial = event2)
-                   #(select-keys % [:type :local-id :caller-id]))]
+                   #(select-keys % [:type :local_id :caller_id]))]
     (enables pred trace)))
 
 (defn enabled-by-init
@@ -61,7 +61,7 @@
   (let [local-trace (trace cog)]
     (keep-indexed
      (fn [i event]
-       (when (= (:local-id event) :run)
+       (when (= (:local_id event) :run)
          [cog i]))
      local-trace)))
 
@@ -69,11 +69,13 @@
   "Returns a sequence of the events that are enabled by the event identified by
   `event-key` in `trace`."
   [event-key trace]
-  (let [event (get-in trace event-key)]
+  (let [event (select-keys
+               (get-in trace event-key)
+               [:type :local_id :caller_id :name])]
     (case (:type event)
-      :new-object (enabled-by-new-object event trace)
+      :new_object (enabled-by-new-object event trace)
       :invocation (enabled-by-invoc event trace)
-      :future-write (enabled-by-completion event trace)
+      :future_write (enabled-by-completion event trace)
       :schedule (if (= (:name event) :init)
                   (enabled-by-init event-key trace)
                   #{})
@@ -244,14 +246,13 @@
      (reverse history)
      (let [candidates (next-event-per-cog pending)
            entries (difference candidates blocked)
-           m (group-by (partial event-key-type trace) entries)
-           entries (if (empty? (dissoc m :time))
-                     (set (:time m))
-                     (difference entries (:time m)))
+           by-time (group-by #(event-key-time trace %) entries)
+           entries (set (second (apply min-key key by-time)))
            enabled (set (mapcat #(enabled-by % trace) entries))]
        (if (empty? entries)
-         (do (prn "Incomplete trace?")
-             (prn (count candidates) "events that can't be placed in a global history.")
+         (do (println "Incomplete trace?")
+             (println (count candidates) "events that can't be placed in a global history.")
+             (println candidates)
              (reverse history))
          (recur trace
                 (difference blocked enabled)

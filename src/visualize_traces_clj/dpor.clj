@@ -12,7 +12,8 @@
          (fn [i event]
            (when (or (and (= (:type event) :schedule)
                           (not (= :main (:local_id event))))
-                     (= (:type event) :future_read))
+                     (= (:type event) :future_read)
+                     (= (:type event) :await_future))
              [cog i])) schedule))
       (mapcat trace) set))
 
@@ -50,7 +51,8 @@
   [event trace]
   (let [event2 (-> (assoc event :type :future_read)
                    (select-keys [:type :local_id :caller_id]))
-        pred (comp (partial = event2)
+        event3 (assoc event2 :type :await_future)
+        pred (comp (some-fn (partial = event2) (partial = event3))
                    #(select-keys % [:type :local_id :caller_id]))]
     (enables pred trace)))
 

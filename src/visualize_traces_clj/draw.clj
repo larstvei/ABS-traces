@@ -4,7 +4,6 @@
             [visualize-traces-clj.event-keys :refer :all]
             [visualize-traces-clj.utils :refer :all]))
 
-
 (defn make-state [trace]
   (let [history (trace->history trace)]
     {:trace trace
@@ -27,6 +26,13 @@
        (swap! color (comp #(mod % 256) (partial + 112)))
        [@color 150 256]))))
 
+(def cog-name
+  (memoize
+   (let [id (atom 0)
+         subscripts (zipmap [\0 \1 \2 \3 \4 \5 \6 \7 \8 \9]
+                            [\₀ \₁ \₂ \₃ \₄ \₅ \₆ \₇ \₈ \₉])]
+     (fn [_] (apply str "Cog" (map subscripts (str (swap! id inc))))))))
+
 (defn draw-grid [n m wd hd]
   (q/no-stroke)
   (let [width (- (q/width) (* 2 wd))]
@@ -40,7 +46,7 @@
   (doseq [cog cogs]
     (let [x (* wd (inc (.indexOf cogs cog)))
           y (/ hd 3)]
-      (q/text (str cog) x y))))
+      (q/text (cog-name cog) x y))))
 
 (defn draw-time [trace history wd hd]
   (loop [i 0.0 t1 0 [x & xs] history]

@@ -74,7 +74,7 @@
   (q/defsketch visualize-traces-clj
     :host "visualize-traces-clj"
     :size [800 1000]
-    :setup (partial setup [shared-buffer-example-trace])
+    :setup (partial setup [{}])
     :key-pressed key-handler
     :draw draw-state
     :settings (partial q/pixel-density 2)

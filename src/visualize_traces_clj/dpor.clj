@@ -238,6 +238,16 @@
               (difference pending entries)
               (conj history entries))))))
 
+(defn potential-deadlocks [trace]
+  (set
+   (for [[cog t] trace
+         [i {c :caller_id l :local_id type :type :as event}] (map-indexed vector t)
+         :when (and (= type :schedule)
+                    (empty? (filter #(and (= (:caller_id %) c)
+                                          (= (:local_id %) l)
+                                          (= (:type %) :future_write)) t)))]
+     [c l])))
+
 (defn trace->history
   "Returns a global history corresponding to `trace`."
   ([trace] (let [blocked (blocked-events trace)
@@ -249,7 +259,7 @@
      (let [candidates (next-event-per-cog pending)
            entries (difference candidates blocked)
            by-time (group-by #(event-key-time trace %) entries)
-           entries (set (second (apply min-key key by-time)))
+           entries (and (not-empty by-time) (set (second (apply min-key key by-time))))
            enabled (set (mapcat #(enabled-by % trace) entries))]
        (if (empty? entries)
          (do (println "Incomplete trace?")

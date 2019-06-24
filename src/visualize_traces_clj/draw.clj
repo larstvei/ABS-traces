@@ -1,6 +1,6 @@
 (ns visualize-traces-clj.draw
   (:require [quil.core :as q :include-macros true]
-            [visualize-traces-clj.dpor :refer [enabled-by trace->history]]
+            [visualize-traces-clj.dpor :refer [enabled-by trace->history potential-deadlocks]]
             [visualize-traces-clj.event-keys :refer :all]
             [visualize-traces-clj.utils :refer :all]))
 
@@ -8,7 +8,8 @@
   (let [history (trace->history trace)]
     {:trace trace
      :cogs (keys trace)
-     :history history}))
+     :history history
+     :deadlocks (potential-deadlocks trace)}))
 
 (defn setup [traces]
   (q/frame-rate 10)
@@ -60,7 +61,7 @@
           (q/text (str t2) (/ wd 4) y)))
       (recur (inc i) t2 xs))))
 
-(defn draw-events [trace history cogs wd hd]
+(defn draw-events [trace history cogs deadlocks wd hd]
   (doseq [[i events] (map-indexed vector history)]
     (if (= (event-key-type trace (first events)) :time)
       (draw-time trace events i wd hd)
@@ -79,6 +80,12 @@
           (apply q/fill (event-color task))
           (q/no-stroke)
           (q/ellipse x y 15 15)
+          (when (deadlocks ((juxt :caller_id :local_id)
+                            (event-key->event trace [cog id])))
+            (q/stroke 0)
+            (q/stroke-weight 3)
+            (q/ellipse x y 17 17)
+            (q/stroke-weight 2))
           (q/fill 0)
           (q/text method tx (- y (/ hd 4)))
           (q/text (name type) x (+ y (/ hd 4)))
@@ -112,7 +119,8 @@
     (draw-grid n m (/ wd 2) hd)
     (draw-cogs (:cogs state) wd hd)
     (draw-time (:trace state) history wd hd)
-    (draw-events (:trace state) history (:cogs state) wd hd)
+
+    (draw-events (:trace state) history (:cogs state) (:deadlocks state) wd hd)
     (when (> (count states) 1)
       (q/text (str (inc current) "/" (count states))
               (/ (q/width) 2) (- (q/height) (/ hd 4))))))

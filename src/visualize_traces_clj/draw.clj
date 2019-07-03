@@ -91,7 +91,7 @@
           (q/text (name type) x (+ y (/ hd 4)))
           (q/stroke 0)
           (when-not (= method "init")
-            (doseq [[cog2 id2] (enabled-by [cog id] trace)]
+            (if-let [[cog2 id2] (first (enabled-by [cog id] trace))]
               (let [k (.indexOf cogs cog2)
                     l (count (take-while (complement #(% [cog2 id2])) history))
                     x2 (* wd (inc k))

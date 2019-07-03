@@ -18,7 +18,7 @@
 
 (defn event-key-method-name [trace event-key]
   (let [method (event-key-method trace event-key)]
-    (s/replace-first (name method) "m-" "")))
+    (s/replace-first (name method) "m_" "")))
 
 (defn event-key-task [trace event-key]
   (let [event (event-key->event trace event-key)]

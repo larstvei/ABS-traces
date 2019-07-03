@@ -68,6 +68,9 @@
 
       :right (assoc app-state :current (mod (inc current) (count states)))
 
+      :s (do (q/save-frame "#######.png")
+             app-state)
+
       app-state)))
 
 (defn ^:export run-sketch []

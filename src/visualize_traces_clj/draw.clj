@@ -110,17 +110,18 @@
 
 (defn draw-state [{:keys [:states :current :start :height]}]
   (let [state (states current)
+        cogs (:cogs state)
         history (take height (drop start (:history state)))
-        n (count (:cogs state))
+        n (count cogs)
         m (count history)
         wd (/ (q/width) (inc n))
         hd (/ (q/height) (inc m))]
     (q/background 255)
     (draw-grid n m (/ wd 2) hd)
-    (draw-cogs (:cogs state) wd hd)
+    (draw-cogs cogs wd hd)
     (draw-time (:trace state) history wd hd)
 
-    (draw-events (:trace state) history (:cogs state) (:deadlocks state) wd hd)
+    (draw-events (:trace state) history cogs (:deadlocks state) wd hd)
     (when (> (count states) 1)
       (q/text (str (inc current) "/" (count states))
               (/ (q/width) 2) (- (q/height) (/ hd 4))))))

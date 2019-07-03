@@ -15,7 +15,7 @@
 
 (defn get-trace-from-simulator []
   (try
-    (-> (h/get "http://localhost:8080/schedules" {:accept :json})
+    (-> (h/get "http://localhost:8080/trace" {:accept :json})
         :body json/read-json json->trace)
     (catch Exception e nil)))
 

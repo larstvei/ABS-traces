@@ -18,7 +18,9 @@
 
 (defn event-key-method-name [trace event-key]
   (let [method (event-key-method trace event-key)]
-    (s/replace-first (name method) "m_" "")))
+    (if (keyword? method)
+      (s/replace-first (name method) "m_" "")
+      (str (:amount (event-key->event trace event-key))))))
 
 (defn event-key-task [trace event-key]
   (let [event (event-key->event trace event-key)]

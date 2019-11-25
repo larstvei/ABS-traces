@@ -12,6 +12,7 @@
          (fn [i event]
            (when (or (and (= (:type event) :schedule)
                           (not (= :main (:local_id event))))
+                     (= (:type event) :cpu)
                      (= (:type event) :future_read)
                      (= (:type event) :await_future))
              [cog i])) schedule))
@@ -67,6 +68,12 @@
          [cog i]))
      local-trace)))
 
+(defn enabled-by-resource
+  [event trace]
+  (let [dc-event (-> (assoc event :type (:name event))
+                     (dissoc :name))]
+    (enables (partial = dc-event) trace)))
+
 (defn enabled-by
   "Returns a sequence of the events that are enabled by the event identified by
   `event-key` in `trace`."
@@ -78,6 +85,7 @@
       :new_object (enabled-by-new-object event trace)
       :invocation (enabled-by-invoc event trace)
       :future_write (enabled-by-completion event trace)
+      :resource (enabled-by-resource event trace)
       :schedule (if (= (:name event) :init)
                   (enabled-by-init event-key trace)
                   #{})
